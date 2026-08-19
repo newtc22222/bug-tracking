@@ -1,0 +1,288 @@
+"use client";
+
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+
+const feedbackTypes = [
+  ["bug", "Bug"],
+  ["improvement", "Improvement"],
+  ["feature", "Feature"],
+  ["question", "Question"],
+] as const;
+
+const statuses = [
+  ["open", "Open"],
+  ["in_progress", "In progress"],
+  ["resolved", "Resolved"],
+  ["closed", "Closed"],
+] as const;
+
+const priorities = [
+  ["low", "Low"],
+  ["medium", "Medium"],
+  ["high", "High"],
+] as const;
+
+type FeedbackItem = {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  type: (typeof feedbackTypes)[number][0];
+  status: (typeof statuses)[number][0];
+  priority: (typeof priorities)[number][0] | null;
+  reporterName: string | null;
+  reporterEmail: string | null;
+  project: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+};
+
+type FeedbackResponse = FeedbackItem & { error?: string };
+
+export default function FeedbackDetailPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const [feedback, setFeedback] = useState<FeedbackItem | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState("bug");
+  const [status, setStatus] = useState("open");
+  const [priority, setPriority] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadFeedback() {
+      try {
+        const response = await fetch(`/api/feedback/${params.id}`);
+        const body = (await response.json().catch(() => null)) as FeedbackResponse | null;
+
+        if (!response.ok || !body) {
+          throw new Error(body?.error || "Feedback item not found.");
+        }
+
+        setFeedback(body);
+        setTitle(body.title);
+        setDescription(body.description || "");
+        setType(body.type);
+        setStatus(body.status);
+        setPriority(body.priority || "");
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : "Unable to load feedback.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadFeedback();
+  }, [params.id]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSaving(true);
+
+    try {
+      const response = await fetch(`/api/feedback/${params.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          type,
+          status,
+          priority: priority || null,
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as FeedbackResponse | null;
+
+      if (!response.ok || !body) {
+        throw new Error(body?.error || "Unable to save feedback.");
+      }
+
+      setFeedback(body);
+      setTitle(body.title);
+      setDescription(body.description || "");
+      setType(body.type);
+      setStatus(body.status);
+      setPriority(body.priority || "");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save feedback.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this feedback item? This action cannot be undone.")) {
+      return;
+    }
+
+    setError("");
+    setDeleting(true);
+
+    try {
+      const response = await fetch(`/api/feedback/${params.id}`, { method: "DELETE" });
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(body?.error || "Unable to delete feedback.");
+      }
+
+      if (feedback) {
+        router.push(`/projects/${feedback.project.id}/feedback`);
+        router.refresh();
+      }
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete feedback.");
+      setDeleting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="mx-auto w-full max-w-md px-4 py-14">
+        <p className="text-sm text-slate-500">Loading feedback…</p>
+      </main>
+    );
+  }
+
+  if (!feedback) {
+    return (
+      <main className="mx-auto w-full max-w-md px-4 py-10 sm:py-14">
+        <Link href="/projects" className="text-sm text-slate-500 hover:text-slate-950">
+          ← Back to projects
+        </Link>
+        <h1 className="mt-8 text-2xl font-semibold text-slate-950">Feedback unavailable</h1>
+        <p className="mt-2 text-sm text-red-700">{error}</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto w-full max-w-md px-4 py-10 sm:py-14">
+      <Link
+        href={`/projects/${feedback.project.id}/feedback`}
+        className="text-sm text-slate-500 hover:text-slate-950"
+      >
+        ← Back to feedback
+      </Link>
+      <div className="mt-6">
+        <p className="text-sm text-slate-500">{feedback.project.name}</p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">Edit Feedback</h1>
+      </div>
+
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <label className="block text-sm font-medium text-slate-700">
+          Title
+          <input
+            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            required
+          />
+        </label>
+
+        <label className="block text-sm font-medium text-slate-700">
+          Description <span className="font-normal text-slate-400">(optional)</span>
+          <textarea
+            className="mt-2 min-h-32 w-full resize-y rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Add context, reproduction steps, or acceptance criteria"
+          />
+        </label>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <label className="block text-sm font-medium text-slate-700">
+            Type
+            <select
+              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+              value={type}
+              onChange={(event) => setType(event.target.value)}
+              required
+            >
+              {feedbackTypes.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-sm font-medium text-slate-700">
+            Status
+            <select
+              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+              required
+            >
+              {statuses.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label className="block text-sm font-medium text-slate-700">
+          Priority <span className="font-normal text-slate-400">(optional)</span>
+          <select
+            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value)}
+          >
+            <option value="">No priority</option>
+            {priorities.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {(feedback.reporterName || feedback.reporterEmail) && (
+          <div className="rounded-md bg-slate-50 px-3 py-3 text-sm text-slate-600">
+            <p className="font-medium text-slate-700">Reporter</p>
+            <p className="mt-1">
+              {feedback.reporterName || "Unknown"}
+              {feedback.reporterEmail ? ` · ${feedback.reporterEmail}` : ""}
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        )}
+
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={saving || deleting}
+            className="flex-1 rounded-md bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
+          <button
+            type="button"
+            disabled={saving || deleting}
+            onClick={handleDelete}
+            className="rounded-md border border-red-200 px-4 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+        </div>
+      </form>
+    </main>
+  );
+}

@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FeedbackType {
+  bug
+  improvement
+  feature
+  question
+}
+
+enum FeedbackStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum FeedbackPriority {
+  low
+  medium
+  high
+}
+
+enum FeedbackSource {
+  manual
+  public_form
+  extension
+  api
+}
+
+model Project {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  repoUrl       String?
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  feedbackItems FeedbackItem[]
+}
+
+model FeedbackItem {
+  id            String           @id @default(cuid())
+  projectId     String
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  type          FeedbackType
+  status        FeedbackStatus   @default(open)
+  priority      FeedbackPriority?
+  source        FeedbackSource   @default(manual)
+  reporterName  String?
+  reporterEmail String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([projectId])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
