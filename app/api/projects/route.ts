@@ -12,6 +12,15 @@ export async function GET() {
 
   const projects = await prisma.project.findMany({
     orderBy: { createdAt: "desc" },
+    include: {
+      _count: {
+        select: {
+          feedbackItems: {
+            where: { status: "open" },
+          },
+        },
+      },
+    },
   });
 
   return NextResponse.json(projects);

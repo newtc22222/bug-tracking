@@ -6,6 +6,7 @@ import {
   FeedbackType,
 } from "@prisma/client";
 import { requireAdminApiSession } from "@/lib/auth";
+import { parseFeedbackQueryParams } from "@/lib/feedback-query";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -30,24 +31,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  const statusParam = request.nextUrl.searchParams.get("status");
-  const typeParam = request.nextUrl.searchParams.get("type");
-
-  if (statusParam && !feedbackStatuses.includes(statusParam as FeedbackStatus)) {
-    return NextResponse.json({ error: "Invalid status filter" }, { status: 400 });
-  }
-
-  if (typeParam && !feedbackTypes.includes(typeParam as FeedbackType)) {
-    return NextResponse.json({ error: "Invalid type filter" }, { status: 400 });
+  const parsed = parseFeedbackQueryParams(request.nextUrl.searchParams, { projectId });
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
   const feedbackItems = await prisma.feedbackItem.findMany({
-    where: {
-      projectId,
-      ...(statusParam ? { status: statusParam as FeedbackStatus } : {}),
-      ...(typeParam ? { type: typeParam as FeedbackType } : {}),
-    },
-    orderBy: { createdAt: "desc" },
+    where: parsed.where,
+    orderBy: parsed.orderBy,
   });
 
   return NextResponse.json(feedbackItems);

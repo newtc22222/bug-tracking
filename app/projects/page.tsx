@@ -6,6 +6,15 @@ export const dynamic = "force-dynamic";
 export default async function ProjectsPage() {
   const projects = await prisma.project.findMany({
     orderBy: { createdAt: "desc" },
+    include: {
+      _count: {
+        select: {
+          feedbackItems: {
+            where: { status: "open" },
+          },
+        },
+      },
+    },
   });
 
   return (
@@ -46,10 +55,18 @@ export default async function ProjectsPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="truncate font-medium text-slate-950">{project.name}</h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="truncate font-medium text-slate-950">{project.name}</h2>
+                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        {project._count.feedbackItems} open
+                      </span>
+                    </div>
                     <p className="mt-1 line-clamp-2 text-sm text-slate-500">
                       {project.description || "No description provided."}
                     </p>
+                    {project.domain && (
+                      <p className="mt-1.5 text-xs text-slate-400">{project.domain}</p>
+                    )}
                   </div>
                   <span className="shrink-0 text-xs text-slate-400">/{project.slug}</span>
                 </div>

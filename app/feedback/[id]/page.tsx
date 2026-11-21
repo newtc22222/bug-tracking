@@ -1,39 +1,37 @@
 "use client";
 
+import type {
+  FeedbackPriority,
+  FeedbackSource,
+  FeedbackStatus,
+  FeedbackType,
+} from "@prisma/client";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-
-const feedbackTypes = [
-  ["bug", "Bug"],
-  ["improvement", "Improvement"],
-  ["feature", "Feature"],
-  ["question", "Question"],
-] as const;
-
-const statuses = [
-  ["open", "Open"],
-  ["in_progress", "In progress"],
-  ["resolved", "Resolved"],
-  ["closed", "Closed"],
-] as const;
-
-const priorities = [
-  ["low", "Low"],
-  ["medium", "Medium"],
-  ["high", "High"],
-] as const;
+import {
+  priorityLabels,
+  priorityOptions,
+  sourceBadgeClass,
+  sourceLabels,
+  statusLabels,
+  statusOptions,
+  typeLabels,
+  typeOptions,
+} from "@/lib/feedback-display";
 
 type FeedbackItem = {
   id: string;
   projectId: string;
   title: string;
   description: string | null;
-  type: (typeof feedbackTypes)[number][0];
-  status: (typeof statuses)[number][0];
-  priority: (typeof priorities)[number][0] | null;
+  type: FeedbackType;
+  status: FeedbackStatus;
+  priority: FeedbackPriority | null;
+  source: FeedbackSource;
   reporterName: string | null;
   reporterEmail: string | null;
+  createdAt: string;
   project: {
     id: string;
     name: string;
@@ -174,7 +172,21 @@ export default function FeedbackDetailPage() {
         ← Back to feedback
       </Link>
       <div className="mt-6">
-        <p className="text-sm text-slate-500">{feedback.project.name}</p>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-sm text-slate-500">{feedback.project.name}</span>
+          <span className={sourceBadgeClass(feedback.source)}>
+            {sourceLabels[feedback.source]}
+          </span>
+          {feedback.createdAt && (
+            <span className="text-slate-400">
+              {new Date(feedback.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          )}
+        </div>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">Edit Feedback</h1>
       </div>
 
@@ -208,9 +220,9 @@ export default function FeedbackDetailPage() {
               onChange={(event) => setType(event.target.value)}
               required
             >
-              {feedbackTypes.map(([value, label]) => (
+              {typeOptions.map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {typeLabels[value]}
                 </option>
               ))}
             </select>
@@ -224,9 +236,9 @@ export default function FeedbackDetailPage() {
               onChange={(event) => setStatus(event.target.value)}
               required
             >
-              {statuses.map(([value, label]) => (
+              {statusOptions.map((value) => (
                 <option key={value} value={value}>
-                  {label}
+                  {statusLabels[value]}
                 </option>
               ))}
             </select>
@@ -241,9 +253,9 @@ export default function FeedbackDetailPage() {
             onChange={(event) => setPriority(event.target.value)}
           >
             <option value="">No priority</option>
-            {priorities.map(([value, label]) => (
+            {priorityOptions.map((value) => (
               <option key={value} value={value}>
-                {label}
+                {priorityLabels[value]}
               </option>
             ))}
           </select>

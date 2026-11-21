@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FeedbackPriority, FeedbackStatus, FeedbackType } from "@prisma/client";
+import { FeedbackPriority, FeedbackStatus, FeedbackType, Prisma } from "@prisma/client";
 import { requireAdminApiSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -93,6 +93,96 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           ? {}
           : { priority: priority as FeedbackPriority | null }),
       },
+      include: {
+        project: {
+          select: { id: true, name: true, slug: true },
+        },
+      },
+    });
+
+    return NextResponse.json(feedbackItem);
+  } catch (error) {
+    if (isPrismaNotFoundError(error)) {
+      return NextResponse.json({ error: "Feedback item not found" }, { status: 404 });
+    }
+
+    throw error;
+  }
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const unauthorizedResponse = await requireAdminApiSession();
+  if (unauthorizedResponse) {
+    return unauthorizedResponse;
+  }
+
+  const { id } = await context.params;
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Request body must be an object" }, { status: 400 });
+  }
+
+  const payload = body as Record<string, unknown>;
+  const updateData: Prisma.FeedbackItemUpdateInput = {};
+
+  if (Object.prototype.hasOwnProperty.call(payload, "title")) {
+    const title = typeof payload.title === "string" ? payload.title.trim() : "";
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+    updateData.title = title;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "description")) {
+    if (payload.description !== null && typeof payload.description !== "string") {
+      return NextResponse.json({ error: "Invalid description" }, { status: 400 });
+    }
+    updateData.description = optionalText(payload.description);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "type")) {
+    if (typeof payload.type !== "string" || !feedbackTypes.includes(payload.type as FeedbackType)) {
+      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    }
+    updateData.type = payload.type as FeedbackType;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "status")) {
+    if (
+      typeof payload.status !== "string" ||
+      !feedbackStatuses.includes(payload.status as FeedbackStatus)
+    ) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+    updateData.status = payload.status as FeedbackStatus;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "priority")) {
+    if (
+      payload.priority !== null &&
+      (typeof payload.priority !== "string" ||
+        !feedbackPriorities.includes(payload.priority as FeedbackPriority))
+    ) {
+      return NextResponse.json({ error: "Invalid priority" }, { status: 400 });
+    }
+    updateData.priority = payload.priority as FeedbackPriority | null;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json({ error: "At least one field is required" }, { status: 400 });
+  }
+
+  try {
+    const feedbackItem = await prisma.feedbackItem.update({
+      where: { id },
+      data: updateData,
       include: {
         project: {
           select: { id: true, name: true, slug: true },

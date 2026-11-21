@@ -10,10 +10,16 @@ export default function Home() {
       <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
         Manage the repositories and projects that feed into your private bug tracking workflow.
       </p>
-      <div className="mt-8">
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <Link
+          href="/feedback"
+          className="inline-flex rounded-md bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
+        >
+          Feedback Inbox
+        </Link>
         <Link
           href="/projects"
-          className="inline-flex rounded-md bg-slate-950 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
+          className="inline-flex rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 transition hover:border-slate-950 hover:text-slate-950"
         >
           View Projects
         </Link>
