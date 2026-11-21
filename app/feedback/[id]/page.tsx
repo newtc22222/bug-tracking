@@ -9,6 +9,7 @@ import type {
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import AiTriagePanel from "@/components/ai-triage-panel";
 import {
   priorityLabels,
   priorityOptions,
@@ -189,6 +190,21 @@ export default function FeedbackDetailPage() {
         </div>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">Edit Feedback</h1>
       </div>
+
+      <AiTriagePanel
+        projectId={feedback.projectId}
+        feedbackId={feedback.id}
+        title={title}
+        description={description}
+        type={type}
+        priority={priority}
+        onApplySuggestions={(next) => {
+          if (next.title !== undefined) setTitle(next.title);
+          if (next.description !== undefined) setDescription(next.description);
+          if (next.type !== undefined) setType(next.type);
+          if (next.priority !== undefined) setPriority(next.priority);
+        }}
+      />
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <label className="block text-sm font-medium text-slate-700">

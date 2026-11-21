@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import AiTriagePanel from "@/components/ai-triage-panel";
 
 const feedbackTypes = [
   ["bug", "Bug"],
@@ -71,6 +72,20 @@ export default function NewFeedbackPage() {
       </Link>
       <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950">New Feedback</h1>
       <p className="mt-2 text-sm text-slate-500">Record an issue, idea, or question for this project.</p>
+
+      <AiTriagePanel
+        projectId={params.id}
+        title={title}
+        description={description}
+        type={type}
+        priority={priority}
+        onApplySuggestions={(next) => {
+          if (next.title !== undefined) setTitle(next.title);
+          if (next.description !== undefined) setDescription(next.description);
+          if (next.type !== undefined) setType(next.type);
+          if (next.priority !== undefined) setPriority(next.priority);
+        }}
+      />
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <label className="block text-sm font-medium text-slate-700">
