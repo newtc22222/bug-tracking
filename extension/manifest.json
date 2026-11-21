@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Bug Tracking Feedback",
+  "version": "0.1.0",
+  "description": "Submit contextual feedback to a self-hosted Bug Tracking project.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://your-bug-tracker-domain.com/*",
+    "http://localhost:3000/*"
+  ],
+  "action": {
+    "default_title": "Send feedback",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html"
+}

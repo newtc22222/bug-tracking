@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FeedbackPriority, FeedbackStatus, FeedbackType } from "@prisma/client";
+import { requireAdminApiSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-// TODO: Protect admin feedback routes with authentication before deployment.
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -13,6 +12,11 @@ const feedbackStatuses = Object.values(FeedbackStatus);
 const feedbackPriorities = Object.values(FeedbackPriority);
 
 export async function GET(_request: NextRequest, context: RouteContext) {
+  const unauthorizedResponse = await requireAdminApiSession();
+  if (unauthorizedResponse) {
+    return unauthorizedResponse;
+  }
+
   const { id } = await context.params;
   const feedbackItem = await prisma.feedbackItem.findUnique({
     where: { id },
@@ -31,6 +35,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
+  const unauthorizedResponse = await requireAdminApiSession();
+  if (unauthorizedResponse) {
+    return unauthorizedResponse;
+  }
+
   const { id } = await context.params;
   let body: unknown;
 
@@ -102,6 +111,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 }
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const unauthorizedResponse = await requireAdminApiSession();
+  if (unauthorizedResponse) {
+    return unauthorizedResponse;
+  }
+
   const { id } = await context.params;
 
   try {

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 export default function NewProjectPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [domain, setDomain] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +22,7 @@ export default function NewProjectPage() {
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, repoUrl, description }),
+        body: JSON.stringify({ name, domain, repoUrl, description }),
       });
 
       if (!response.ok) {
@@ -44,7 +45,7 @@ export default function NewProjectPage() {
       </Link>
       <h1 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950">New Project</h1>
       <p className="mt-2 text-sm text-slate-500">
-        Add a repository you want to track feedback for.
+        Add a repository and live site you want to track feedback for.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
@@ -58,6 +59,20 @@ export default function NewProjectPage() {
             required
             autoFocus
           />
+        </label>
+
+        <label className="block text-sm font-medium text-slate-700">
+          Live site domain <span className="font-normal text-slate-400">(optional)</span>
+          <input
+            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+            value={domain}
+            onChange={(event) => setDomain(event.target.value)}
+            placeholder="app.example.com"
+            autoComplete="url"
+          />
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            Used by the browser extension to match the current site.
+          </span>
         </label>
 
         <label className="block text-sm font-medium text-slate-700">

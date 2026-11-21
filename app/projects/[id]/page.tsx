@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import PublicSubmitLink from "@/components/public-submit-link";
 import { useParams, useRouter } from "next/navigation";
 
 type Project = {
   id: string;
   name: string;
   slug: string;
+  domain: string | null;
   repoUrl: string | null;
   description: string | null;
 };
@@ -18,6 +20,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [openFeedbackCount, setOpenFeedbackCount] = useState<number | null>(null);
   const [name, setName] = useState("");
+  const [domain, setDomain] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
@@ -37,6 +40,7 @@ export default function ProjectDetailPage() {
 
         setProject(body);
         setName(body.name);
+        setDomain(body.domain || "");
 
         const feedbackResponse = await fetch(`/api/projects/${params.id}/feedback?status=open`);
         if (feedbackResponse.ok) {
@@ -64,7 +68,7 @@ export default function ProjectDetailPage() {
       const response = await fetch(`/api/projects/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, repoUrl, description }),
+        body: JSON.stringify({ name, domain, repoUrl, description }),
       });
 
       const body = (await response.json().catch(() => null)) as Project & { error?: string };
@@ -74,6 +78,7 @@ export default function ProjectDetailPage() {
 
       setProject(body);
       setName(body.name);
+      setDomain(body.domain || "");
       setRepoUrl(body.repoUrl || "");
       setDescription(body.description || "");
     } catch (saveError) {
@@ -148,6 +153,8 @@ export default function ProjectDetailPage() {
         </span>
       </Link>
 
+      <PublicSubmitLink slug={project.slug} />
+
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <label className="block text-sm font-medium text-slate-700">
           Name
@@ -157,6 +164,20 @@ export default function ProjectDetailPage() {
             onChange={(event) => setName(event.target.value)}
             required
           />
+        </label>
+
+        <label className="block text-sm font-medium text-slate-700">
+          Live site domain <span className="font-normal text-slate-400">(optional)</span>
+          <input
+            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+            value={domain}
+            onChange={(event) => setDomain(event.target.value)}
+            placeholder="app.example.com"
+            autoComplete="url"
+          />
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            Used by the browser extension to match the current site.
+          </span>
         </label>
 
         <label className="block text-sm font-medium text-slate-700">

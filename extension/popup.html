@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Send feedback</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="popup-header">
+        <p class="eyebrow">Bug Tracking</p>
+        <h1>Send feedback</h1>
+      </header>
+
+      <section id="loading-state" class="status-panel">
+        <p>Checking this site…</p>
+      </section>
+
+      <section id="no-match-state" class="status-panel hidden">
+        <h2>No project linked to this site</h2>
+        <p>Choose a project manually to send this feedback.</p>
+        <label>
+          Project
+          <select id="project-select">
+            <option value="">Select a project</option>
+          </select>
+        </label>
+      </section>
+
+      <section id="project-context" class="project-context hidden"></section>
+
+      <form id="feedback-form" class="feedback-form hidden">
+        <label>
+          Title
+          <input id="title" name="title" maxlength="200" placeholder="What happened?" required />
+        </label>
+
+        <label>
+          Details <span class="optional">(optional)</span>
+          <textarea id="description" name="description" maxlength="5000" rows="5" placeholder="Add useful context"></textarea>
+        </label>
+
+        <label>
+          Type
+          <select id="type" name="type" required>
+            <option value="bug">Bug</option>
+            <option value="improvement">Improvement</option>
+            <option value="feature">Feature request</option>
+            <option value="question">Question</option>
+          </select>
+        </label>
+
+        <div class="two-column">
+          <label>
+            Name <span class="optional">(optional)</span>
+            <input id="reporter-name" name="reporterName" maxlength="200" autocomplete="name" />
+          </label>
+          <label>
+            Email <span class="optional">(optional)</span>
+            <input id="reporter-email" name="reporterEmail" type="email" maxlength="320" autocomplete="email" />
+          </label>
+        </div>
+
+        <label class="honeypot" aria-hidden="true">
+          Website
+          <input id="website" name="website" tabindex="-1" autocomplete="off" />
+        </label>
+
+        <p id="form-error" class="form-message error hidden" role="alert"></p>
+        <button id="submit-button" type="submit">Send feedback</button>
+      </form>
+
+      <section id="success-state" class="status-panel success hidden">
+        <h2>Thanks for the feedback</h2>
+        <p>Your message has been received and will be reviewed soon.</p>
+      </section>
+
+      <p id="global-error" class="form-message error hidden" role="alert"></p>
+      <button id="options-button" class="text-button" type="button">Extension settings</button>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -2,8 +2,13 @@ import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
 const protectedApiPrefixes = ["/api/projects", "/api/feedback"];
+const publicApiPaths = ["/api/projects/public-list"];
 
 export async function middleware(request: NextRequest) {
+  if (publicApiPaths.includes(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,

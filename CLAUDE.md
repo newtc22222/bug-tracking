@@ -1,124 +1,80 @@
-\# Project Instructions — Bug Tracking App
+# Bug Tracking App — Project Instructions
 
+This file gives coding assistants the context needed to work on this repository consistently. Read it before making changes.
 
+## What this app is
 
-This file gives any LLM coding assistant (Claude Code, Cursor, etc.) the context needed to work on this repo consistently. Read this before making changes.
+An internal, self-hosted bug and feedback tracker. It manages private repositories and collects feedback from external users of those repositories. It is not a public product; it is built for a private workflow.
 
+## Current phase
 
+The app is being built incrementally. Do not jump ahead of the next phase without confirmation. The completed phases are:
 
-\## What this app is
+1. **Projects CRUD** — done. Admin users can create, list, edit, and delete projects.
+2. **FeedbackItem CRUD** — done. Admin users can create, list, filter, edit, and delete feedback items.
+3. **Public feedback submission form** — done. External users can submit feedback at `/submit/[slug]` without authentication.
+4. **Auth** — done. Admin pages and admin APIs require the single-admin Auth.js session.
+5. **Browser extension** — done. A plain Chrome Manifest V3 extension detects project domains, supports a manual project fallback, and submits contextual feedback through the public API.
+6. **AI assistance** — next / not started. It may clean up or structure raw feedback text and detect duplicates.
 
-An internal, self-hosted bug/feedback tracker. I use it to manage my own private repos and collect feedback (bugs, improvements, feature requests) from external users of those repos. Not a public product — built for my own workflow.
+Do not build ahead of the current phase. The schema and API should grow incrementally rather than being over-engineered up front.
 
+## Stack
 
+- **Next.js** with App Router, TypeScript, and Tailwind CSS.
+- **PostgreSQL** via Docker Compose for local development and self-hosted Docker deployment.
+- **Prisma** as the ORM.
+- Auth.js v5 Credentials provider with JWT sessions for the single admin.
+- A plain JavaScript/HTML/CSS Chrome Manifest V3 extension under `extension/` with no build step.
+- No component library; keep the web UI in plain Tailwind CSS.
 
-\## Current phase
+## Conventions
 
-We are building \*\*incrementally\*\*. Check with me before jumping ahead to a phase that isn't listed as "in progress" below.
+- **API routes:** REST-style routes under `app/api/<resource>/route.ts` and `app/api/<resource>/[id]/route.ts`. Use GET for list/read, POST for create, PUT for update, and DELETE for removal.
+- **Database access:** Always use the shared `lib/prisma.ts` client singleton. Never instantiate `PrismaClient` elsewhere.
+- **IDs:** Use `cuid()` rather than auto-incrementing integers.
+- **Slugs:** User-facing URL segments must be unique. Use `lib/slug.ts` and append `-1`, `-2`, and so on for collisions.
+- **Domains:** Normalize live-site domains to lowercase hostnames. A Project's optional `domain` is unique when set and is separate from `repoUrl`.
+- **Validation:** Basic required-field and length validation in API routes is sufficient until the data model stabilizes. Public input must be treated as untrusted.
+- **Client versus server components:** Default to server components. Use client components only for interactive forms, buttons, and browser APIs.
+- **Styling:** Keep layouts minimal, clean, narrow, and centered. Use `max-w-2xl` for lists and dashboards and `max-w-md` for forms.
+- **Authentication:** `/projects/*`, `/feedback/*`, `/api/projects/*`, and `/api/feedback/*` are protected. `/submit/*`, `/api/submit/*`, `/api/lookup`, and `/api/projects/public-list` are intentionally public.
+- **Public API notes:** `/api/lookup?domain=...` returns only `{ found, slug, name }` for a matching domain. `/api/projects/public-list` returns only public-safe `{ slug, name }` records for the extension fallback picker. The full admin `/api/projects` endpoint stays protected.
 
+## Data model
 
+### Project
 
-1\. \*\*Projects CRUD\*\* — in progress / done (admin can create, list, edit, delete projects)
+- `id`, `name`, `slug` (unique), `domain?` (unique when set), `repoUrl?`, `description?`, `createdAt`, `updatedAt`
+- Has many `FeedbackItem` records with cascade deletion.
 
-2\. \*\*FeedbackItem CRUD\*\* — next up
+### FeedbackItem
 
-3\. \*\*Public feedback submission form\*\* (`/submit/\[slug]`)
+- `id`, `projectId` (foreign key), `title`, `description?`
+- `type`: `bug | improvement | feature | question`
+- `status`: `open | in_progress | resolved | closed`
+- `priority`: `low | medium | high | null`
+- `source`: `manual | public_form | extension | api`
+- `reporterName?`, `reporterEmail?`, `createdAt`, `updatedAt`
+- Extension submissions append page URL and browser information to `description` in a delimited context block. Structured context columns may be considered later if needed.
 
-4\. \*\*Auth\*\* (admin login, protect admin routes/API)
+### AdminUser
 
-5\. \*\*Browser extension\*\* (submits feedback with page context — URL, screenshot, browser info)
+- `id`, `email` (unique), `passwordHash`, `createdAt`
+- Seeded from `ADMIN_EMAIL` and `ADMIN_PASSWORD` using `prisma/seed.ts`.
 
-6\. \*\*AI assistance\*\* (clean up/structure raw feedback text, duplicate detection)
+## Explicitly out of scope until asked for
 
+- AI-assisted feedback cleanup and duplicate detection.
+- Screenshot capture and image storage.
+- Firefox/Safari support and Chrome Web Store publishing.
+- Notifications, comments or threads, file attachments, and status history.
+- CAPTCHA or advanced distributed rate limiting beyond the public form's honeypot and basic in-memory limiter.
+- Additional users, roles, permissions, password reset, and email verification.
+- Third-party authentication or UI component libraries beyond the already implemented Auth.js integration.
 
+## When implementing a task
 
-Don't build ahead of the current phase without asking — the schema and API are meant to grow incrementally, not be over-engineered up front.
-
-
-
-\## Stack
-
-\- \*\*Next.js\*\* (App Router, TypeScript, Tailwind) — one codebase for admin UI, public form, and API routes
-
-\- \*\*PostgreSQL\*\* via Docker Compose for local dev; self-hosted (e.g. Docker on a VPS) for production — no managed cloud DB
-
-\- \*\*Prisma\*\* as the ORM
-
-\- No component library (e.g. no shadcn/MUI) unless I ask for one — keep it plain Tailwind
-
-
-
-\## Conventions
-
-\- \*\*API routes\*\*: REST-ish, under `app/api/<resource>/route.ts` and `app/api/<resource>/\[id]/route.ts`. Standard verbs: GET (list/read), POST (create), PUT (update), DELETE.
-
-\- \*\*DB access\*\*: always through the shared `lib/prisma.ts` client singleton — never instantiate `PrismaClient` elsewhere.
-
-\- \*\*IDs\*\*: `cuid()`, not auto-increment integers.
-
-\- \*\*Slugs\*\*: any user-facing/public URL segment (e.g. project slugs) must be unique; use `lib/slug.ts` and handle collisions by appending `-1`, `-2`, etc.
-
-\- \*\*Validation\*\*: basic required-field checks in the API route itself is fine for now — no need for a schema validation library (zod etc.) until the data model stabilizes.
-
-\- \*\*Client vs server components\*\*: default to server components; only mark `"use client"` when the page needs interactivity (forms, buttons with handlers).
-
-\- \*\*Styling\*\*: minimal, clean, narrow centered layouts (`max-w-2xl` for lists/dashboards, `max-w-md` for forms). No heavy visual design work until the core flows work — function first.
-
-
-
-\## Data model so far
-
-```
-
-Project
-
-\- id, name, slug (unique), repoUrl?, description?, createdAt, updatedAt
-
-
-
-FeedbackItem (planned, not yet built)
-
-\- id, projectId (FK)
-
-\- title, description
-
-\- type: bug | improvement | feature | question
-
-\- status: open | in\_progress | resolved | closed
-
-\- priority: low | medium | high (nullable)
-
-\- source: manual | public\_form | extension | api
-
-\- reporterName?, reporterEmail?
-
-\- createdAt, updatedAt
-
-```
-
-Keep `source` and `reporter\*` fields even before the extension exists — avoids a migration later.
-
-
-
-\## Explicitly out of scope until asked for
-
-\- Auth (until phase 4)
-
-\- Browser extension (phase 5)
-
-\- AI features (phase 6)
-
-\- Notifications, comments/threads, file attachments
-
-\- Any third-party auth/component/UI library — ask first
-
-
-
-\## When implementing a task
-
-\- Stick to the scope described in my prompt for that session — don't silently add features from later phases "while you're in there."
-
-\- If something in this file conflicts with what I ask for in a given session, my in-session instructions win, but flag the conflict so I know the docs may need updating.
-
-\- After finishing a task, give a short summary of what changed and how to run/verify it — not a full narration of every file touched.
-
+- Stick to the scope described in the current prompt and do not silently add later-phase features.
+- If this file conflicts with an in-session instruction, the in-session instruction wins, but flag the conflict so this file can be updated.
+- After finishing a task, provide a short summary of what changed and how to run or verify it.

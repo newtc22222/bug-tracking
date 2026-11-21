@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdminApiSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-// TODO: Protect admin project management routes with authentication before deployment.
+import { normalizeDomain } from "@/lib/domain";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
+  const unauthorizedResponse = await requireAdminApiSession();
+  if (unauthorizedResponse) {
+    return unauthorizedResponse;
+  }
+
   const { id } = await context.params;
   const project = await prisma.project.findUnique({ where: { id } });
 
@@ -19,6 +24,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
+  const unauthorizedResponse = await requireAdminApiSession();
+  if (unauthorizedResponse) {
+    return unauthorizedResponse;
+  }
+
   const { id } = await context.params;
   let body: unknown;
 
@@ -42,12 +52,18 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   const repoUrl = typeof payload.repoUrl === "string" ? payload.repoUrl.trim() : null;
   const description =
     typeof payload.description === "string" ? payload.description.trim() : null;
+  const domain = normalizeDomain(typeof payload.domain === "string" ? payload.domain : "");
+
+  if (domain.length > 253) {
+    return NextResponse.json({ error: "Domain must be 253 characters or fewer" }, { status: 400 });
+  }
 
   try {
     const project = await prisma.project.update({
       where: { id },
       data: {
         name,
+        domain: domain || null,
         repoUrl: repoUrl || null,
         description: description || null,
       },
@@ -59,11 +75,20 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    if (isPrismaUniqueError(error)) {
+      return NextResponse.json({ error: "That domain is already linked to a project" }, { status: 409 });
+    }
+
     throw error;
   }
 }
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const unauthorizedResponse = await requireAdminApiSession();
+  if (unauthorizedResponse) {
+    return unauthorizedResponse;
+  }
+
   const { id } = await context.params;
 
   try {
@@ -84,5 +109,14 @@ function isPrismaNotFoundError(error: unknown): boolean {
     error !== null &&
     "code" in error &&
     error.code === "P2025"
+  );
+}
+
+function isPrismaUniqueError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
   );
 }

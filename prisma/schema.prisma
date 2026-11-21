@@ -38,6 +38,7 @@ model Project {
   id            String         @id @default(cuid())
   name          String
   slug          String         @unique
+  domain        String?        @unique
   repoUrl       String?
   description   String?
   createdAt     DateTime       @default(now())

@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+build
+.git
+.gitignore
+.env*
+coverage
+*.tsbuildinfo
+README.md
+CLAUDE.md
+tests
