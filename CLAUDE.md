@@ -4,77 +4,48 @@ This file gives coding assistants the context needed to work on this repository 
 
 ## What this app is
 
-An internal, self-hosted bug and feedback tracker. It manages private repositories and collects feedback from external users of those repositories. It is not a public product; it is built for a private workflow.
+An internal, self-hosted bug and feedback tracker. It manages private repositories and collects feedback from external users of those repositories via public forms, a Chrome MV3 extension, or project-scoped API keys. It is not a public SaaS product; it is built for a private workflow.
 
-## Current phase
+## Completed Phases & Milestones
 
-The app is being built incrementally. Do not jump ahead of the next phase without confirmation. The completed phases are:
-
-1. **Projects CRUD** — done. Admin users can create, list, edit, and delete projects.
-2. **FeedbackItem CRUD** — done. Admin users can create, list, filter, edit, and delete feedback items.
-3. **Public feedback submission form** — done. External users can submit feedback at `/submit/[slug]` without authentication.
-4. **Auth** — done. Admin pages and admin APIs require the single-admin Auth.js session.
-5. **Browser extension** — done. A plain Chrome Manifest V3 extension detects project domains, supports a manual project fallback, and submits contextual feedback through the public API.
-6. **AI assistance** — next / not started. It may clean up or structure raw feedback text and detect duplicates.
-
-Do not build ahead of the current phase. The schema and API should grow incrementally rather than being over-engineered up front.
+- **Phases 1–5 + Milestone 0 (MVP Stabilization):** Projects CRUD, FeedbackItem CRUD, public `/submit/[slug]` form, single-admin Auth.js v5 authentication, Chrome MV3 extension, production standalone Dockerfile, `/api/health`, defense-in-depth `requireAdminApiSession()` checks, and Vitest test suite.
+- **Milestone 1 (Daily Triage & Admin UX):** Global `/feedback` inbox, search/filter/sort/pagination (`lib/feedback-query.ts`), inline status/priority updates (`PATCH /api/feedback/[id]`), source badges, and open-item counts.
+- **Milestone 2 (Phase 6 — AI Assistance):** Feedback cleanup/structuring, type/priority suggestions, and duplicate detection (`lib/ai-triage.ts`, `POST /api/feedback/ai-triage`) with configurable provider (`openai`, `gemini`, or `heuristic`) and automatic heuristic fallback.
+- **Milestone 3 (Richer Capture & Integrations):** Structured `pageUrl`, `browserInfo`, `screenshotDataUrl` columns, extension screenshot capture, Slack/Discord/generic webhook notifications (`lib/notifications.ts`), and GitHub issue promotion (`lib/github.ts`, `POST /api/feedback/[id]/github`).
+- **Milestone 4 (Collaboration & Ops Hardening):** Internal admin notes and status transition history (`FeedbackNote`, `FeedbackStatusEvent`, `/api/feedback/[id]/notes`), project API keys (`ProjectApiKey`, `/api/projects/[id]/api-keys`, `POST /api/v1/feedback`), persistent DB rate limiting (`RateLimitBucket`, `lib/rate-limit.ts`), CSV/JSON export (`GET /api/feedback/export`), and `npm run db:backup` (`scripts/backup-data.ts`).
 
 ## Stack
 
-- **Next.js** with App Router, TypeScript, and Tailwind CSS.
-- **PostgreSQL** via Docker Compose for local development and self-hosted Docker deployment.
-- **Prisma** as the ORM.
-- Auth.js v5 Credentials provider with JWT sessions for the single admin.
+- **Next.js 16** with App Router, TypeScript, and Tailwind CSS v4.
+- **PostgreSQL 16** via Docker Compose for local development and self-hosted Docker deployment.
+- **Prisma 6** as the ORM.
+- **Auth.js v5** Credentials provider with JWT sessions for the single admin.
 - A plain JavaScript/HTML/CSS Chrome Manifest V3 extension under `extension/` with no build step.
 - No component library; keep the web UI in plain Tailwind CSS.
 
 ## Conventions
 
-- **API routes:** REST-style routes under `app/api/<resource>/route.ts` and `app/api/<resource>/[id]/route.ts`. Use GET for list/read, POST for create, PUT for update, and DELETE for removal.
+- **API routes:** REST-style routes under `app/api/<resource>/route.ts` and `app/api/<resource>/[id]/route.ts`. Never export non-handler symbols from Next.js `route.ts` files.
 - **Database access:** Always use the shared `lib/prisma.ts` client singleton. Never instantiate `PrismaClient` elsewhere.
 - **IDs:** Use `cuid()` rather than auto-incrementing integers.
 - **Slugs:** User-facing URL segments must be unique. Use `lib/slug.ts` and append `-1`, `-2`, and so on for collisions.
-- **Domains:** Normalize live-site domains to lowercase hostnames. A Project's optional `domain` is unique when set and is separate from `repoUrl`.
-- **Validation:** Basic required-field and length validation in API routes is sufficient until the data model stabilizes. Public input must be treated as untrusted.
-- **Client versus server components:** Default to server components. Use client components only for interactive forms, buttons, and browser APIs.
-- **Styling:** Keep layouts minimal, clean, narrow, and centered. Use `max-w-2xl` for lists and dashboards and `max-w-md` for forms.
-- **Authentication:** `/projects/*`, `/feedback/*`, `/api/projects/*`, and `/api/feedback/*` are protected. `/submit/*`, `/api/submit/*`, `/api/lookup`, and `/api/projects/public-list` are intentionally public.
-- **Public API notes:** `/api/lookup?domain=...` returns only `{ found, slug, name }` for a matching domain. `/api/projects/public-list` returns only public-safe `{ slug, name }` records for the extension fallback picker. The full admin `/api/projects` endpoint stays protected.
+- **Domains:** Normalize live-site domains to lowercase hostnames via `lib/domain.ts`. A Project's optional `domain` is unique when set and is separate from `repoUrl`.
+- **Client versus server components:** Default to server components. Use client components only for interactive forms, buttons, and browser APIs. Never import runtime `@prisma/client` enum objects inside `"use client"` components (use `import type` and `lib/feedback-display.ts`).
+- **Styling:** Keep layouts minimal, clean, narrow, and centered (`max-w-2xl` for lists/inboxes, `max-w-md` for forms).
+- **Authentication:** `/projects/*`, `/feedback/*`, `/api/projects/*`, and `/api/feedback/*` are protected via both `middleware.ts` and `requireAdminApiSession()` / `requireAdminSession()` in `lib/auth.ts`. `/submit/*`, `/api/submit/*`, `/api/lookup`, `/api/projects/public-list`, and `/api/health` are intentionally public. `/api/v1/feedback` authenticates via scoped `ProjectApiKey` bearer / `x-api-key` headers.
+- **Public API notes:** `/api/lookup?domain=...` returns only `{ found, slug, name }` for a matching domain. `/api/projects/public-list` returns only public-safe `{ slug, name }` records for the extension fallback picker.
 
 ## Data model
 
-### Project
+- **Project:** `id`, `name`, `slug` (unique), `domain?` (unique), `repoUrl?`, `webhookUrl?`, `description?`, `createdAt`, `updatedAt`; has many `FeedbackItem` and `ProjectApiKey` records with cascade deletion.
+- **FeedbackItem:** `id`, `projectId`, `title`, `description?`, `type`, `status`, `priority?`, `source`, `reporterName?`, `reporterEmail?`, `pageUrl?`, `browserInfo?`, `screenshotDataUrl?`, `githubIssueUrl?`, `githubIssueNumber?`, `createdAt`, `updatedAt`; has many `FeedbackNote` and `FeedbackStatusEvent` records with cascade deletion.
+- **FeedbackNote:** `id`, `feedbackItemId`, `authorEmail`, `body`, `createdAt`.
+- **FeedbackStatusEvent:** `id`, `feedbackItemId`, `fromStatus?`, `toStatus`, `actorEmail`, `createdAt`.
+- **ProjectApiKey:** `id`, `projectId`, `name`, `keyPrefix`, `keyHash` (unique), `lastUsedAt?`, `revokedAt?`, `createdAt`.
+- **RateLimitBucket:** `key` (PK), `count`, `windowStart`, `updatedAt`.
+- **AdminUser:** `id`, `email` (unique), `passwordHash`, `createdAt`, seeded from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 
-- `id`, `name`, `slug` (unique), `domain?` (unique when set), `repoUrl?`, `description?`, `createdAt`, `updatedAt`
-- Has many `FeedbackItem` records with cascade deletion.
+## Verification
 
-### FeedbackItem
-
-- `id`, `projectId` (foreign key), `title`, `description?`
-- `type`: `bug | improvement | feature | question`
-- `status`: `open | in_progress | resolved | closed`
-- `priority`: `low | medium | high | null`
-- `source`: `manual | public_form | extension | api`
-- `reporterName?`, `reporterEmail?`, `createdAt`, `updatedAt`
-- Extension submissions append page URL and browser information to `description` in a delimited context block. Structured context columns may be considered later if needed.
-
-### AdminUser
-
-- `id`, `email` (unique), `passwordHash`, `createdAt`
-- Seeded from `ADMIN_EMAIL` and `ADMIN_PASSWORD` using `prisma/seed.ts`.
-
-## Explicitly out of scope until asked for
-
-- AI-assisted feedback cleanup and duplicate detection.
-- Screenshot capture and image storage.
-- Firefox/Safari support and Chrome Web Store publishing.
-- Notifications, comments or threads, file attachments, and status history.
-- CAPTCHA or advanced distributed rate limiting beyond the public form's honeypot and basic in-memory limiter.
-- Additional users, roles, permissions, password reset, and email verification.
-- Third-party authentication or UI component libraries beyond the already implemented Auth.js integration.
-
-## When implementing a task
-
-- Stick to the scope described in the current prompt and do not silently add later-phase features.
-- If this file conflicts with an in-session instruction, the in-session instruction wins, but flag the conflict so this file can be updated.
-- After finishing a task, provide a short summary of what changed and how to run or verify it.
+- Run `npm test`, `npx tsc --noEmit`, `npm run lint`, and `npm run build` after changes.
+- Do not commit unless ready and verified. After finishing a task, provide a concise summary of what changed and verified results.

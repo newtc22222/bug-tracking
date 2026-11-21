@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import PublicSubmitLink from "@/components/public-submit-link";
+import ProjectApiKeysPanel from "@/components/project-api-keys-panel";
 import { useParams, useRouter } from "next/navigation";
 
 type Project = {
@@ -243,6 +244,8 @@ export default function ProjectDetailPage() {
           </button>
         </div>
       </form>
+
+      <ProjectApiKeysPanel projectId={project.id} />
     </main>
   );
 }

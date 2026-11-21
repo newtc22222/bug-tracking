@@ -87,6 +87,13 @@ export default function FeedbackListView({
     projectId: showProjectFilter ? filters.projectId : undefined,
   };
 
+  const exportQueryBase = buildFeedbackQueryString({
+    ...filters,
+    page: undefined,
+  });
+  const csvExportHref = `/api/feedback/export${exportQueryBase ? `${exportQueryBase}&format=csv` : "?format=csv"}`;
+  const jsonExportHref = `/api/feedback/export${exportQueryBase ? `${exportQueryBase}&format=json` : "?format=json"}`;
+
   const formKey = JSON.stringify({
     ...paginationFilters,
     page,
@@ -213,10 +220,24 @@ export default function FeedbackListView({
           </label>
         </div>
 
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <p className="text-xs text-slate-500">
-            {total} {total === 1 ? "item" : "items"}
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-3 text-xs text-slate-500">
+            <span>
+              {total} {total === 1 ? "item" : "items"}
+            </span>
+            <a
+              href={csvExportHref}
+              className="underline underline-offset-2 hover:text-slate-900"
+            >
+              Export CSV
+            </a>
+            <a
+              href={jsonExportHref}
+              className="underline underline-offset-2 hover:text-slate-900"
+            >
+              Export JSON
+            </a>
+          </div>
           <div className="flex items-center gap-3">
             {hasActiveFilters && (
               <Link

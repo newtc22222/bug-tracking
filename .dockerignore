@@ -6,6 +6,7 @@ build
 .gitignore
 .env*
 coverage
+backups
 *.tsbuildinfo
 README.md
 CLAUDE.md

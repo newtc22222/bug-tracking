@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { FeedbackSource, FeedbackType } from "@prisma/client";
 import { sendFeedbackNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { allowRateLimitedAction } from "@/lib/rate-limit";
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_SUBMISSIONS_PER_WINDOW = 5;
 const MAX_SCREENSHOT_LENGTH = 2_000_000;
-const submissionAttempts = new Map<string, number[]>();
 const feedbackTypes = Object.values(FeedbackType);
 
 export async function POST(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ sl
   }
 
   const ip = getClientIp(request);
-  if (!allowSubmission(ip)) {
+  if (!(await allowRateLimitedAction(`submit:${ip}`, MAX_SUBMISSIONS_PER_WINDOW, RATE_LIMIT_WINDOW_MS))) {
     return NextResponse.json(
       { error: "Too many submissions. Please try again later." },
       { status: 429 },
@@ -212,20 +212,4 @@ function getClientIp(request: NextRequest): string {
   }
 
   return request.headers.get("x-real-ip")?.trim() || "unknown";
-}
-
-function allowSubmission(ip: string): boolean {
-  const now = Date.now();
-  const recentAttempts = (submissionAttempts.get(ip) || []).filter(
-    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS,
-  );
-
-  if (recentAttempts.length >= MAX_SUBMISSIONS_PER_WINDOW) {
-    submissionAttempts.set(ip, recentAttempts);
-    return false;
-  }
-
-  recentAttempts.push(now);
-  submissionAttempts.set(ip, recentAttempts);
-  return true;
 }

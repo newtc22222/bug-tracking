@@ -35,28 +35,29 @@ enum FeedbackSource {
 }
 
 model Project {
-  id            String         @id @default(cuid())
+  id            String          @id @default(cuid())
   name          String
-  slug          String         @unique
-  domain        String?        @unique
+  slug          String          @unique
+  domain        String?         @unique
   repoUrl       String?
   webhookUrl    String?
   description   String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   feedbackItems FeedbackItem[]
+  apiKeys       ProjectApiKey[]
 }
 
 model FeedbackItem {
-  id                String            @id @default(cuid())
+  id                String                @id @default(cuid())
   projectId         String
-  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project           Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title             String
   description       String?
   type              FeedbackType
-  status            FeedbackStatus    @default(open)
+  status            FeedbackStatus        @default(open)
   priority          FeedbackPriority?
-  source            FeedbackSource    @default(manual)
+  source            FeedbackSource        @default(manual)
   reporterName      String?
   reporterEmail     String?
   pageUrl           String?
@@ -64,10 +65,56 @@ model FeedbackItem {
   screenshotDataUrl String?
   githubIssueUrl    String?
   githubIssueNumber Int?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  notes             FeedbackNote[]
+  statusEvents      FeedbackStatusEvent[]
 
   @@index([projectId])
+}
+
+model FeedbackNote {
+  id             String       @id @default(cuid())
+  feedbackItemId String
+  feedbackItem   FeedbackItem @relation(fields: [feedbackItemId], references: [id], onDelete: Cascade)
+  authorEmail    String
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([feedbackItemId])
+}
+
+model FeedbackStatusEvent {
+  id             String          @id @default(cuid())
+  feedbackItemId String
+  feedbackItem   FeedbackItem    @relation(fields: [feedbackItemId], references: [id], onDelete: Cascade)
+  fromStatus     FeedbackStatus?
+  toStatus       FeedbackStatus
+  actorEmail     String
+  createdAt      DateTime        @default(now())
+
+  @@index([feedbackItemId])
+}
+
+model ProjectApiKey {
+  id         String    @id @default(cuid())
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name       String
+  keyPrefix  String
+  keyHash    String    @unique
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([projectId])
+}
+
+model RateLimitBucket {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
+  updatedAt   DateTime @updatedAt
 }
 
 model AdminUser {

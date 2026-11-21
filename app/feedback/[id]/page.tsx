@@ -11,6 +11,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AiTriagePanel from "@/components/ai-triage-panel";
+import FeedbackNotesPanel from "@/components/feedback-notes-panel";
 import {
   priorityLabels,
   priorityOptions,
@@ -62,6 +63,7 @@ export default function FeedbackDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [promotingGithub, setPromotingGithub] = useState(false);
   const [githubError, setGithubError] = useState("");
+  const [notesRefreshSignal, setNotesRefreshSignal] = useState(0);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -119,6 +121,7 @@ export default function FeedbackDetailPage() {
       setType(body.type);
       setStatus(body.status);
       setPriority(body.priority || "");
+      setNotesRefreshSignal((prev) => prev + 1);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save feedback.");
     } finally {
@@ -407,6 +410,8 @@ export default function FeedbackDetailPage() {
           </button>
         </div>
       </form>
+
+      <FeedbackNotesPanel feedbackId={feedback.id} refreshSignal={notesRefreshSignal} />
     </main>
   );
 }

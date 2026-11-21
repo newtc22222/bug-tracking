@@ -47,12 +47,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
 });
 
-export async function requireAdminApiSession(): Promise<NextResponse | null> {
+export async function requireAdminSession(): Promise<
+  | { email: string; errorResponse: null }
+  | { email: null; errorResponse: NextResponse }
+> {
   const session = await auth();
 
   if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return {
+      email: null,
+      errorResponse: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
   }
 
-  return null;
+  return {
+    email: session.user.email || "admin",
+    errorResponse: null,
+  };
+}
+
+export async function requireAdminApiSession(): Promise<NextResponse | null> {
+  const { errorResponse } = await requireAdminSession();
+  return errorResponse;
 }

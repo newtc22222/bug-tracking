@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FeedbackPriority, FeedbackStatus, FeedbackType, Prisma } from "@prisma/client";
-import { requireAdminApiSession } from "@/lib/auth";
+import { requireAdminApiSession, requireAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -35,9 +35,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
-  const unauthorizedResponse = await requireAdminApiSession();
-  if (unauthorizedResponse) {
-    return unauthorizedResponse;
+  const authResult = await requireAdminSession();
+  if (authResult.errorResponse) {
+    return authResult.errorResponse;
   }
 
   const { id } = await context.params;
@@ -82,6 +82,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 
   try {
+    const previousStatus = await readPreviousStatus(id);
+
     const feedbackItem = await prisma.feedbackItem.update({
       where: { id },
       data: {
@@ -100,6 +102,13 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       },
     });
 
+    await recordStatusTransitionIfChanged({
+      feedbackItemId: id,
+      fromStatus: previousStatus,
+      toStatus: status as FeedbackStatus,
+      actorEmail: authResult.email,
+    });
+
     return NextResponse.json(feedbackItem);
   } catch (error) {
     if (isPrismaNotFoundError(error)) {
@@ -111,9 +120,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
-  const unauthorizedResponse = await requireAdminApiSession();
-  if (unauthorizedResponse) {
-    return unauthorizedResponse;
+  const authResult = await requireAdminSession();
+  if (authResult.errorResponse) {
+    return authResult.errorResponse;
   }
 
   const { id } = await context.params;
@@ -180,6 +189,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   try {
+    const nextStatus =
+      typeof updateData.status === "string" ? (updateData.status as FeedbackStatus) : undefined;
+    const previousStatus = nextStatus ? await readPreviousStatus(id) : undefined;
+
     const feedbackItem = await prisma.feedbackItem.update({
       where: { id },
       data: updateData,
@@ -189,6 +202,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         },
       },
     });
+
+    if (nextStatus) {
+      await recordStatusTransitionIfChanged({
+        feedbackItemId: id,
+        fromStatus: previousStatus,
+        toStatus: nextStatus,
+        actorEmail: authResult.email,
+      });
+    }
 
     return NextResponse.json(feedbackItem);
   } catch (error) {
@@ -231,4 +253,49 @@ function isPrismaNotFoundError(error: unknown): boolean {
     "code" in error &&
     error.code === "P2025"
   );
+}
+
+async function readPreviousStatus(id: string): Promise<FeedbackStatus | undefined> {
+  if (
+    typeof prisma.feedbackItem?.findUnique !== "function" ||
+    typeof prisma.feedbackStatusEvent?.create !== "function"
+  ) {
+    return undefined;
+  }
+
+  const existing = await prisma.feedbackItem.findUnique({
+    where: { id },
+    select: { status: true },
+  });
+
+  return existing?.status;
+}
+
+async function recordStatusTransitionIfChanged({
+  feedbackItemId,
+  fromStatus,
+  toStatus,
+  actorEmail,
+}: {
+  feedbackItemId: string;
+  fromStatus: FeedbackStatus | undefined;
+  toStatus: FeedbackStatus;
+  actorEmail: string;
+}): Promise<void> {
+  if (
+    !fromStatus ||
+    fromStatus === toStatus ||
+    typeof prisma.feedbackStatusEvent?.create !== "function"
+  ) {
+    return;
+  }
+
+  await prisma.feedbackStatusEvent.create({
+    data: {
+      feedbackItemId,
+      fromStatus,
+      toStatus,
+      actorEmail,
+    },
+  });
 }
