@@ -62,6 +62,18 @@
           </label>
         </div>
 
+        <div class="screenshot-section">
+          <button id="capture-screenshot-button" class="secondary-button" type="button">
+            Capture visible tab screenshot
+          </button>
+          <div id="screenshot-preview-wrap" class="screenshot-preview-wrap hidden">
+            <img id="screenshot-preview" class="screenshot-preview" alt="Captured tab screenshot" />
+            <button id="remove-screenshot-button" class="text-button remove-screenshot-button" type="button">
+              Remove screenshot
+            </button>
+          </div>
+        </div>
+
         <label class="honeypot" aria-hidden="true">
           Website
           <input id="website" name="website" tabindex="-1" autocomplete="off" />

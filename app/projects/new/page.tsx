@@ -9,6 +9,7 @@ export default function NewProjectPage() {
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,7 +23,7 @@ export default function NewProjectPage() {
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, domain, repoUrl, description }),
+        body: JSON.stringify({ name, domain, repoUrl, webhookUrl, description }),
       });
 
       if (!response.ok) {
@@ -84,6 +85,20 @@ export default function NewProjectPage() {
             onChange={(event) => setRepoUrl(event.target.value)}
             placeholder="https://github.com/you/project"
           />
+        </label>
+
+        <label className="block text-sm font-medium text-slate-700">
+          Webhook URL <span className="font-normal text-slate-400">(optional)</span>
+          <input
+            type="url"
+            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+            value={webhookUrl}
+            onChange={(event) => setWebhookUrl(event.target.value)}
+            placeholder="https://hooks.slack.com/services/..."
+          />
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            Slack, Discord, or custom JSON webhook notified on new submissions.
+          </span>
         </label>
 
         <label className="block text-sm font-medium text-slate-700">

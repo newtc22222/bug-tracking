@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FeedbackSource, FeedbackType } from "@prisma/client";
+import { sendFeedbackNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_SUBMISSIONS_PER_WINDOW = 5;
+const MAX_SCREENSHOT_LENGTH = 2_000_000;
 const submissionAttempts = new Map<string, number[]>();
 const feedbackTypes = Object.values(FeedbackType);
 
@@ -11,7 +13,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ sl
   const { slug } = await context.params;
   const project = await prisma.project.findUnique({
     where: { slug },
-    select: { id: true },
+    select: { id: true, name: true, slug: true, webhookUrl: true },
   });
 
   if (!project) {
@@ -100,8 +102,36 @@ export async function POST(request: NextRequest, context: { params: Promise<{ sl
     );
   }
 
+  let screenshotDataUrl: string | null = null;
+  if (
+    Object.prototype.hasOwnProperty.call(payload, "screenshotDataUrl") &&
+    payload.screenshotDataUrl !== null &&
+    payload.screenshotDataUrl !== undefined
+  ) {
+    if (typeof payload.screenshotDataUrl !== "string") {
+      return NextResponse.json({ error: "Invalid screenshot format" }, { status: 400 });
+    }
+    const trimmedShot = payload.screenshotDataUrl.trim();
+    if (trimmedShot) {
+      if (!trimmedShot.startsWith("data:image/")) {
+        return NextResponse.json(
+          { error: "Screenshot must be a valid image data URL" },
+          { status: 400 },
+        );
+      }
+      if (trimmedShot.length > MAX_SCREENSHOT_LENGTH) {
+        return NextResponse.json(
+          { error: "Screenshot exceeds maximum allowed size" },
+          { status: 400 },
+        );
+      }
+      screenshotDataUrl = trimmedShot;
+    }
+  }
+
   const descriptionWithContext = appendExtensionContext(description, pageUrl, browserInfo);
-  const source: FeedbackSource = pageUrl || browserInfo ? "extension" : "public_form";
+  const source: FeedbackSource =
+    pageUrl || browserInfo || screenshotDataUrl ? "extension" : "public_form";
 
   const feedbackItem = await prisma.feedbackItem.create({
     data: {
@@ -114,13 +144,40 @@ export async function POST(request: NextRequest, context: { params: Promise<{ sl
       source,
       reporterName,
       reporterEmail,
+      ...(pageUrl ? { pageUrl } : {}),
+      ...(browserInfo ? { browserInfo } : {}),
+      ...(screenshotDataUrl ? { screenshotDataUrl } : {}),
     },
     select: {
+      id: true,
       title: true,
       type: true,
       createdAt: true,
     },
   });
+
+  if (project.webhookUrl) {
+    await sendFeedbackNotification(
+      {
+        id: project.id,
+        name: project.name || slug,
+        slug: project.slug || slug,
+        webhookUrl: project.webhookUrl,
+      },
+      {
+        id: feedbackItem.id,
+        title,
+        description: descriptionWithContext,
+        type,
+        status: "open",
+        priority: null,
+        source,
+        pageUrl,
+        reporterName,
+        reporterEmail,
+      },
+    );
+  }
 
   return NextResponse.json({ ok: true, feedback: feedbackItem }, { status: 201 });
 }

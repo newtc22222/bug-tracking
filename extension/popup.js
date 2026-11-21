@@ -5,11 +5,18 @@ const state = {
   tabUrl: "",
   domain: "",
   projectSlug: "",
+  screenshotDataUrl: "",
 };
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("feedback-form").addEventListener("submit", submitFeedback);
   document.getElementById("project-select").addEventListener("change", handleProjectSelection);
+  document
+    .getElementById("capture-screenshot-button")
+    .addEventListener("click", captureScreenshot);
+  document
+    .getElementById("remove-screenshot-button")
+    .addEventListener("click", clearScreenshot);
   document.getElementById("options-button").addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
   });
@@ -105,6 +112,7 @@ async function submitFeedback(event) {
     website: document.getElementById("website").value.trim(),
     pageUrl: state.tabUrl,
     browserInfo: navigator.userAgent,
+    ...(state.screenshotDataUrl ? { screenshotDataUrl: state.screenshotDataUrl } : {}),
   };
 
   try {
@@ -174,4 +182,37 @@ function showGlobalError(message) {
   const error = document.getElementById("global-error");
   error.textContent = message;
   show("global-error");
+}
+
+async function captureScreenshot() {
+  hide("form-error");
+  const button = document.getElementById("capture-screenshot-button");
+  button.disabled = true;
+
+  try {
+    const dataUrl = await chrome.tabs.captureVisibleTab(null, {
+      format: "jpeg",
+      quality: 75,
+    });
+    if (!dataUrl) {
+      throw new Error("Unable to capture tab screenshot.");
+    }
+
+    state.screenshotDataUrl = dataUrl;
+    document.getElementById("screenshot-preview").src = dataUrl;
+    show("screenshot-preview-wrap");
+    button.textContent = "Retake screenshot";
+  } catch (error) {
+    showFormError(error.message || "Unable to capture screenshot on this tab.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function clearScreenshot() {
+  state.screenshotDataUrl = "";
+  document.getElementById("screenshot-preview").removeAttribute("src");
+  hide("screenshot-preview-wrap");
+  document.getElementById("capture-screenshot-button").textContent =
+    "Capture visible tab screenshot";
 }

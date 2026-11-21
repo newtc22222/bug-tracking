@@ -6,6 +6,7 @@ import type {
   FeedbackStatus,
   FeedbackType,
 } from "@prisma/client";
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -32,6 +33,11 @@ type FeedbackItem = {
   source: FeedbackSource;
   reporterName: string | null;
   reporterEmail: string | null;
+  pageUrl: string | null;
+  browserInfo: string | null;
+  screenshotDataUrl: string | null;
+  githubIssueUrl: string | null;
+  githubIssueNumber: number | null;
   createdAt: string;
   project: {
     id: string;
@@ -54,6 +60,8 @@ export default function FeedbackDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [promotingGithub, setPromotingGithub] = useState(false);
+  const [githubError, setGithubError] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -141,6 +149,35 @@ export default function FeedbackDetailPage() {
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Unable to delete feedback.");
       setDeleting(false);
+    }
+  }
+
+  async function handlePromoteGithub() {
+    setGithubError("");
+    setPromotingGithub(true);
+
+    try {
+      const response = await fetch(`/api/feedback/${params.id}/github`, {
+        method: "POST",
+      });
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+        feedbackItem?: FeedbackItem;
+      } | null;
+
+      if (!response.ok || !body?.feedbackItem) {
+        throw new Error(body?.error || "Unable to promote feedback to GitHub.");
+      }
+
+      setFeedback(body.feedbackItem);
+    } catch (promoteError) {
+      setGithubError(
+        promoteError instanceof Error
+          ? promoteError.message
+          : "Unable to promote feedback to GitHub.",
+      );
+    } finally {
+      setPromotingGithub(false);
     }
   }
 
@@ -286,6 +323,65 @@ export default function FeedbackDetailPage() {
             </p>
           </div>
         )}
+
+        {(feedback.pageUrl || feedback.browserInfo || feedback.screenshotDataUrl) && (
+          <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600">
+            <p className="font-medium text-slate-800">Captured context</p>
+            {feedback.pageUrl && (
+              <p className="break-all">
+                <span className="font-medium text-slate-700">Page:</span> {feedback.pageUrl}
+              </p>
+            )}
+            {feedback.browserInfo && (
+              <p className="break-words">
+                <span className="font-medium text-slate-700">Browser:</span> {feedback.browserInfo}
+              </p>
+            )}
+            {feedback.screenshotDataUrl && (
+              <div>
+                <p className="font-medium text-slate-700">Screenshot</p>
+                <Image
+                  src={feedback.screenshotDataUrl}
+                  alt="Captured feedback screenshot"
+                  width={800}
+                  height={600}
+                  unoptimized
+                  className="mt-2 max-h-72 w-full rounded border border-slate-200 bg-white object-contain"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="rounded-md border border-slate-200 bg-white px-3 py-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-medium text-slate-800">GitHub Integration</span>
+            {feedback.githubIssueUrl ? (
+              <a
+                href={feedback.githubIssueUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:underline"
+              >
+                GitHub Issue #{feedback.githubIssueNumber ?? "linked"} ↗
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePromoteGithub}
+                disabled={promotingGithub}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:border-slate-950 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {promotingGithub ? "Creating issue…" : "Promote to GitHub Issue"}
+              </button>
+            )}
+          </div>
+          {githubError && (
+            <p role="alert" className="mt-2 rounded bg-red-50 px-2.5 py-1.5 text-xs text-red-700">
+              {githubError}
+            </p>
+          )}
+        </div>
 
         {error && (
           <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">

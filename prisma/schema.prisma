@@ -40,6 +40,7 @@ model Project {
   slug          String         @unique
   domain        String?        @unique
   repoUrl       String?
+  webhookUrl    String?
   description   String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -47,19 +48,24 @@ model Project {
 }
 
 model FeedbackItem {
-  id            String           @id @default(cuid())
-  projectId     String
-  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title         String
-  description   String?
-  type          FeedbackType
-  status        FeedbackStatus   @default(open)
-  priority      FeedbackPriority?
-  source        FeedbackSource   @default(manual)
-  reporterName  String?
-  reporterEmail String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id                String            @id @default(cuid())
+  projectId         String
+  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  type              FeedbackType
+  status            FeedbackStatus    @default(open)
+  priority          FeedbackPriority?
+  source            FeedbackSource    @default(manual)
+  reporterName      String?
+  reporterEmail     String?
+  pageUrl           String?
+  browserInfo       String?
+  screenshotDataUrl String?
+  githubIssueUrl    String?
+  githubIssueNumber Int?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([projectId])
 }

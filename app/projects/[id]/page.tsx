@@ -11,6 +11,7 @@ type Project = {
   slug: string;
   domain: string | null;
   repoUrl: string | null;
+  webhookUrl: string | null;
   description: string | null;
 };
 
@@ -22,6 +23,7 @@ export default function ProjectDetailPage() {
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,6 +50,7 @@ export default function ProjectDetailPage() {
           setOpenFeedbackCount(feedbackItems.length);
         }
         setRepoUrl(body.repoUrl || "");
+        setWebhookUrl(body.webhookUrl || "");
         setDescription(body.description || "");
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Unable to load project.");
@@ -68,7 +71,7 @@ export default function ProjectDetailPage() {
       const response = await fetch(`/api/projects/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, domain, repoUrl, description }),
+        body: JSON.stringify({ name, domain, repoUrl, webhookUrl, description }),
       });
 
       const body = (await response.json().catch(() => null)) as Project & { error?: string };
@@ -80,6 +83,7 @@ export default function ProjectDetailPage() {
       setName(body.name);
       setDomain(body.domain || "");
       setRepoUrl(body.repoUrl || "");
+      setWebhookUrl(body.webhookUrl || "");
       setDescription(body.description || "");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save project.");
@@ -189,6 +193,20 @@ export default function ProjectDetailPage() {
             onChange={(event) => setRepoUrl(event.target.value)}
             placeholder="https://github.com/you/project"
           />
+        </label>
+
+        <label className="block text-sm font-medium text-slate-700">
+          Webhook URL <span className="font-normal text-slate-400">(optional)</span>
+          <input
+            type="url"
+            className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:ring-1 focus:ring-slate-950"
+            value={webhookUrl}
+            onChange={(event) => setWebhookUrl(event.target.value)}
+            placeholder="https://hooks.slack.com/services/..."
+          />
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            Slack, Discord, or custom JSON webhook notified on new submissions.
+          </span>
         </label>
 
         <label className="block text-sm font-medium text-slate-700">
