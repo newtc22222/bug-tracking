@@ -31,7 +31,7 @@ An internal, self-hosted bug and feedback tracker. It manages private repositori
 - **Slugs:** User-facing URL segments must be unique. Use `lib/slug.ts` and append `-1`, `-2`, and so on for collisions.
 - **Domains:** Normalize live-site domains to lowercase hostnames via `lib/domain.ts`. A Project's optional `domain` is unique when set and is separate from `repoUrl`.
 - **Client versus server components:** Default to server components. Use client components only for interactive forms, buttons, and browser APIs. Never import runtime `@prisma/client` enum objects inside `"use client"` components (use `import type` and `lib/feedback-display.ts`).
-- **Styling:** Keep layouts minimal, clean, narrow, and centered (`max-w-2xl` for lists/inboxes, `max-w-md` for forms).
+- **Styling:** Developer Workbench (Linear / Vercel style) in plain Tailwind CSS v4 (`max-w-5xl` for admin lists, inbox, and 2-column `lg:grid-cols-[1fr_340px]` detail pages; `max-w-2xl` / `max-w-xl` / `max-w-sm` for standalone creation, public submission, and login forms).
 - **Authentication:** `/projects/*`, `/feedback/*`, `/api/projects/*`, and `/api/feedback/*` are protected via both `middleware.ts` and `requireAdminApiSession()` / `requireAdminSession()` in `lib/auth.ts`. `/submit/*`, `/api/submit/*`, `/api/lookup`, `/api/projects/public-list`, and `/api/health` are intentionally public. `/api/v1/feedback` authenticates via scoped `ProjectApiKey` bearer / `x-api-key` headers.
 - **Public API notes:** `/api/lookup?domain=...` returns only `{ found, slug, name }` for a matching domain. `/api/projects/public-list` returns only public-safe `{ slug, name }` records for the extension fallback picker.
 

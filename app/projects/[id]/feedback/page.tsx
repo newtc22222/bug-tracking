@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import FeedbackListView from "@/components/feedback-list-view";
+import { PlusIcon } from "@/components/ui-icons";
 import { parseFeedbackQueryParams } from "@/lib/feedback-query";
 import { prisma } from "@/lib/prisma";
 
@@ -48,25 +49,49 @@ export default async function ProjectFeedbackPage({ params, searchParams }: Feed
   const totalPages = Math.max(1, Math.ceil(total / effective.pageSize));
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:py-14">
-      <Link
-        href={`/projects/${projectId}`}
-        className="text-sm text-slate-500 hover:text-slate-950"
-      >
-        ← Back to project
-      </Link>
-
-      <div className="mt-6 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-slate-500">{project.name}</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">Feedback</h1>
-        </div>
-        <Link
-          href={`/projects/${projectId}/feedback/new`}
-          className="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
-        >
-          New Feedback
+    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-500">
+        <Link href="/projects" className="transition hover:text-slate-950">
+          Projects
         </Link>
+        <span aria-hidden="true">/</span>
+        <Link href={`/projects/${projectId}`} className="transition hover:text-slate-950">
+          {project.name}
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span className="font-medium text-slate-800">Feedback</span>
+      </nav>
+
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+              {project.name} Feedback
+            </h1>
+            <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600 ring-1 ring-inset ring-slate-200">
+              /{project.slug}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            Filter, triage, and export feedback scoped to this project.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/projects/${projectId}`}
+            className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-2xs transition hover:border-slate-950 hover:text-slate-950"
+          >
+            Project Settings
+          </Link>
+          <Link
+            href={`/projects/${projectId}/feedback/new`}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-slate-950 px-3.5 text-sm font-medium text-white shadow-xs transition hover:bg-slate-800"
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+            <span>New Feedback</span>
+          </Link>
+        </div>
       </div>
 
       <FeedbackListView
