@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { FeedbackPriority, FeedbackStatus, FeedbackType, Prisma } from "@prisma/client";
 import { requireAdminApiSession, requireAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canTransitionStatus, getTransitionErrorMessage } from "@/lib/workflow";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -22,7 +23,22 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     where: { id },
     include: {
       project: {
-        select: { id: true, name: true, slug: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          keyPrefix: true,
+          gitPlatform: true,
+          repoUrl: true,
+          trackerPlatform: true,
+          trackerConfig: true,
+        },
+      },
+      externalLinks: {
+        orderBy: { createdAt: "desc" },
+      },
+      labels: {
+        include: { label: true },
       },
     },
   });
@@ -84,6 +100,13 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const previousStatus = await readPreviousStatus(id);
 
+    if (previousStatus && !canTransitionStatus(previousStatus, status as FeedbackStatus)) {
+      return NextResponse.json(
+        { error: getTransitionErrorMessage(previousStatus, status as FeedbackStatus) },
+        { status: 400 },
+      );
+    }
+
     const feedbackItem = await prisma.feedbackItem.update({
       where: { id },
       data: {
@@ -97,7 +120,19 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       },
       include: {
         project: {
-          select: { id: true, name: true, slug: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            keyPrefix: true,
+            gitPlatform: true,
+            repoUrl: true,
+            trackerPlatform: true,
+            trackerConfig: true,
+          },
+        },
+        externalLinks: {
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -193,6 +228,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       typeof updateData.status === "string" ? (updateData.status as FeedbackStatus) : undefined;
     const previousStatus = nextStatus ? await readPreviousStatus(id) : undefined;
 
+    if (nextStatus && previousStatus && !canTransitionStatus(previousStatus, nextStatus)) {
+      return NextResponse.json(
+        { error: getTransitionErrorMessage(previousStatus, nextStatus) },
+        { status: 400 },
+      );
+    }
+
     const feedbackItem = await prisma.feedbackItem.update({
       where: { id },
       data: updateData,
@@ -256,10 +298,7 @@ function isPrismaNotFoundError(error: unknown): boolean {
 }
 
 async function readPreviousStatus(id: string): Promise<FeedbackStatus | undefined> {
-  if (
-    typeof prisma.feedbackItem?.findUnique !== "function" ||
-    typeof prisma.feedbackStatusEvent?.create !== "function"
-  ) {
+  if (typeof prisma.feedbackItem?.findUnique !== "function") {
     return undefined;
   }
 

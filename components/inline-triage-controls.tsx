@@ -1,31 +1,38 @@
 "use client";
 
-import type { FeedbackPriority, FeedbackStatus } from "@prisma/client";
+import type { FeedbackPriority, FeedbackStatus, FeedbackType } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon } from "@/components/ui-icons";
 import {
+  priorityDisplayOrder,
   priorityDotClass,
   priorityLabels,
-  priorityOptions,
   statusLabels,
-  statusOptions,
+  typeLabels,
+  typeOptions,
 } from "@/lib/feedback-display";
+import { getSelectableStatuses } from "@/lib/workflow";
 
 type InlineTriageControlsProps = {
   feedbackId: string;
-  initialStatus: FeedbackStatus;
+  initialType: FeedbackType;
   initialPriority: FeedbackPriority | null;
+  initialStatus: FeedbackStatus;
+  compact?: boolean;
 };
 
 export default function InlineTriageControls({
   feedbackId,
-  initialStatus,
+  initialType,
   initialPriority,
+  initialStatus,
+  compact = false,
 }: InlineTriageControlsProps) {
   const router = useRouter();
-  const [status, setStatus] = useState<FeedbackStatus>(initialStatus);
+  const [type, setType] = useState<FeedbackType>(initialType);
   const [priority, setPriority] = useState<FeedbackPriority | "">(initialPriority || "");
+  const [status, setStatus] = useState<FeedbackStatus>(initialStatus);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -40,18 +47,17 @@ export default function InlineTriageControls({
   }, []);
 
   async function updateField(patch: {
-    status?: FeedbackStatus;
+    type?: FeedbackType;
     priority?: FeedbackPriority | null;
+    status?: FeedbackStatus;
   }) {
-    const previousStatus = status;
+    const previousType = type;
     const previousPriority = priority;
+    const previousStatus = status;
 
-    if (patch.status !== undefined) {
-      setStatus(patch.status);
-    }
-    if (patch.priority !== undefined) {
-      setPriority(patch.priority || "");
-    }
+    if (patch.type !== undefined) setType(patch.type);
+    if (patch.priority !== undefined) setPriority(patch.priority || "");
+    if (patch.status !== undefined) setStatus(patch.status);
 
     setError("");
     setSaved(false);
@@ -70,23 +76,27 @@ export default function InlineTriageControls({
 
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error || "Unable to update feedback.");
+        throw new Error(body?.error || "Unable to update ticket.");
       }
 
       setSaved(true);
       savedTimerRef.current = window.setTimeout(() => setSaved(false), 1800);
       router.refresh();
     } catch (updateError) {
-      setStatus(previousStatus);
+      setType(previousType);
       setPriority(previousPriority);
+      setStatus(previousStatus);
       setError(updateError instanceof Error ? updateError.message : "Update failed.");
     } finally {
       setSaving(false);
     }
   }
 
+  const selectableStatuses = getSelectableStatuses(status);
+
   return (
     <div className="flex flex-col items-start gap-1.5 sm:items-end">
+      {/* Strictly ordered: Type > Priority > Status */}
       <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
         {saved && (
           <span
@@ -99,19 +109,21 @@ export default function InlineTriageControls({
           </span>
         )}
 
-        <select
-          aria-label="Status"
-          value={status}
-          disabled={saving}
-          onChange={(event) => updateField({ status: event.target.value as FeedbackStatus })}
-          className="h-7 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-800 outline-none transition hover:border-slate-300 focus:border-slate-950 focus:ring-2 focus:ring-slate-950/10 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {statusOptions.map((option) => (
-            <option key={option} value={option}>
-              {statusLabels[option]}
-            </option>
-          ))}
-        </select>
+        {!compact && (
+          <select
+            aria-label="Type"
+            value={type}
+            disabled={saving}
+            onChange={(event) => updateField({ type: event.target.value as FeedbackType })}
+            className="h-7 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-800 outline-none transition hover:border-slate-300 focus:border-slate-950 focus:ring-2 focus:ring-slate-950/10 disabled:opacity-60"
+          >
+            {typeOptions.map((option) => (
+              <option key={option} value={option}>
+                {typeLabels[option]}
+              </option>
+            ))}
+          </select>
+        )}
 
         <div className="relative flex items-center">
           <span
@@ -129,16 +141,30 @@ export default function InlineTriageControls({
                 priority: event.target.value ? (event.target.value as FeedbackPriority) : null,
               })
             }
-            className="h-7 rounded-md border border-slate-200 bg-white pr-2 pl-5 text-xs font-medium text-slate-800 outline-none transition hover:border-slate-300 focus:border-slate-950 focus:ring-2 focus:ring-slate-950/10 disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-7 rounded-md border border-slate-200 bg-white pr-2 pl-5 text-xs font-medium text-slate-800 outline-none transition hover:border-slate-300 focus:border-slate-950 focus:ring-2 focus:ring-slate-950/10 disabled:opacity-60"
           >
             <option value="">No priority</option>
-            {priorityOptions.map((option) => (
+            {priorityDisplayOrder.map((option) => (
               <option key={option} value={option}>
                 {priorityLabels[option]}
               </option>
             ))}
           </select>
         </div>
+
+        <select
+          aria-label="Status"
+          value={status}
+          disabled={saving}
+          onChange={(event) => updateField({ status: event.target.value as FeedbackStatus })}
+          className="h-7 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-800 outline-none transition hover:border-slate-300 focus:border-slate-950 focus:ring-2 focus:ring-slate-950/10 disabled:opacity-60"
+        >
+          {selectableStatuses.map((option) => (
+            <option key={option} value={option}>
+              {statusLabels[option]}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (

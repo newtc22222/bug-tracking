@@ -39,6 +39,7 @@ type AiTriagePanelProps = {
   description: string;
   type: string;
   priority: string;
+  onLinkDuplicate?: (targetId: string) => void;
   onApplySuggestions: (next: {
     title?: string;
     description?: string;
@@ -54,6 +55,7 @@ export default function AiTriagePanel({
   description,
   type,
   priority,
+  onLinkDuplicate,
   onApplySuggestions,
 }: AiTriagePanelProps) {
   const [analyzing, setAnalyzing] = useState(false);
@@ -243,6 +245,15 @@ export default function AiTriagePanel({
                       <span className={statusBadgeClass(dup.status)}>
                         {statusLabels[dup.status]}
                       </span>
+                      {feedbackId && onLinkDuplicate && (
+                        <button
+                          type="button"
+                          onClick={() => onLinkDuplicate(dup.id)}
+                          className="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-700 hover:border-slate-950 hover:text-slate-950"
+                        >
+                          Link dup
+                        </button>
+                      )}
                     </div>
                   </li>
                 ))}

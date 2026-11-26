@@ -1,10 +1,17 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedApiPrefixes = ["/api/projects", "/api/feedback"];
+const protectedApiPrefixes = [
+  "/api/projects",
+  "/api/feedback",
+  "/api/settings",
+  "/api/dashboard",
+  "/api/labels",
+  "/api/views",
+];
 const publicApiPaths = ["/api/projects/public-list"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   if (publicApiPaths.includes(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
@@ -32,5 +39,17 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/projects/:path*", "/feedback/:path*", "/api/projects/:path*", "/api/feedback/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/projects/:path*",
+    "/feedback/:path*",
+    "/settings/:path*",
+    "/guide/:path*",
+    "/api/projects/:path*",
+    "/api/feedback/:path*",
+    "/api/settings/:path*",
+    "/api/dashboard/:path*",
+    "/api/labels/:path*",
+    "/api/views/:path*",
+  ],
 };

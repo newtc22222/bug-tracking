@@ -57,6 +57,7 @@ describe("parseFeedbackQueryParams", () => {
       priority: null,
       source: "extension",
       OR: [
+        { ticketKey: { contains: "login", mode: "insensitive" } },
         { title: { contains: "login", mode: "insensitive" } },
         { description: { contains: "login", mode: "insensitive" } },
         { reporterName: { contains: "login", mode: "insensitive" } },
@@ -105,7 +106,8 @@ describe("parseFeedbackQueryParams", () => {
       ok: false,
       error: "Invalid type filter",
     });
-    expect(parseFeedbackQueryParams({ priority: "urgent" })).toEqual({
+    expect(parseFeedbackQueryParams({ priority: "urgent" }).ok).toBe(true);
+    expect(parseFeedbackQueryParams({ priority: "critical" })).toEqual({
       ok: false,
       error: "Invalid priority filter",
     });

@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Bug Tracking Feedback",
-  "version": "0.1.0",
-  "description": "Submit contextual feedback to a self-hosted Bug Tracking project.",
+  "version": "0.2.0",
+  "description": "Submit contextual bug reports with screenshots and diagnostics to a self-hosted Bug Tracking workspace.",
   "permissions": [
     "activeTab",
+    "scripting",
     "storage"
   ],
   "host_permissions": [

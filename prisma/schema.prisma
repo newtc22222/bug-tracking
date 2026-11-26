@@ -16,7 +16,9 @@ enum FeedbackType {
 
 enum FeedbackStatus {
   open
+  todo
   in_progress
+  blocked
   resolved
   closed
 }
@@ -25,6 +27,7 @@ enum FeedbackPriority {
   low
   medium
   high
+  urgent
 }
 
 enum FeedbackSource {
@@ -34,24 +37,93 @@ enum FeedbackSource {
   api
 }
 
+enum GitPlatform {
+  none
+  github
+  gitlab
+  bitbucket
+  azure_devops
+  gitea
+  custom
+}
+
+enum TrackerPlatform {
+  none
+  github_issues
+  gitlab_issues
+  linear
+  jira
+  bitbucket_issues
+}
+
+enum FeedbackLinkType {
+  blocks
+  causes
+  duplicates
+  relates_to
+  parent_of
+}
+
+enum LayoutWidth {
+  full
+  wide
+  narrow
+}
+
+enum PresentationMode {
+  page
+  modal
+  drawer
+}
+
+enum TicketViewMode {
+  list_full
+  list_fixed
+  grid
+  kanban
+}
+
+enum ThemeMode {
+  system
+  light
+  dark
+}
+
+enum ThemeAccent {
+  slate
+  indigo
+  emerald
+  amber
+  rose
+}
+
 model Project {
-  id            String          @id @default(cuid())
-  name          String
-  slug          String          @unique
-  domain        String?         @unique
-  repoUrl       String?
-  webhookUrl    String?
-  description   String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  feedbackItems FeedbackItem[]
-  apiKeys       ProjectApiKey[]
+  id               String          @id @default(cuid())
+  name             String
+  slug             String          @unique
+  keyPrefix        String          @unique @default("PRJ")
+  nextSequence     Int             @default(1)
+  domain           String?         @unique
+  gitPlatform      GitPlatform     @default(none)
+  repoUrl          String?
+  gitDefaultBranch String?
+  trackerPlatform  TrackerPlatform @default(none)
+  trackerConfig    Json?
+  webhookUrl       String?
+  description      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  feedbackItems    FeedbackItem[]
+  apiKeys          ProjectApiKey[]
+  labels           Label[]
 }
 
 model FeedbackItem {
   id                String                @id @default(cuid())
   projectId         String
   project           Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sequenceNumber    Int                   @default(0)
+  ticketKey         String?               @unique
   title             String
   description       String?
   type              FeedbackType
@@ -69,8 +141,45 @@ model FeedbackItem {
   updatedAt         DateTime              @updatedAt
   notes             FeedbackNote[]
   statusEvents      FeedbackStatusEvent[]
+  outgoingLinks     FeedbackLink[]        @relation("SourceLinks")
+  incomingLinks     FeedbackLink[]        @relation("TargetLinks")
+  externalLinks     ExternalIssueLink[]
+  labels            FeedbackLabel[]
 
   @@index([projectId])
+  @@index([status])
+  @@index([priority])
+}
+
+model FeedbackLink {
+  id             String           @id @default(cuid())
+  sourceId       String
+  source         FeedbackItem     @relation("SourceLinks", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId       String
+  target         FeedbackItem     @relation("TargetLinks", fields: [targetId], references: [id], onDelete: Cascade)
+  relationType   FeedbackLinkType
+  createdByEmail String
+  createdAt      DateTime         @default(now())
+
+  @@unique([sourceId, targetId, relationType])
+  @@index([sourceId])
+  @@index([targetId])
+}
+
+model ExternalIssueLink {
+  id             String          @id @default(cuid())
+  feedbackItemId String
+  feedbackItem   FeedbackItem    @relation(fields: [feedbackItemId], references: [id], onDelete: Cascade)
+  provider       TrackerPlatform
+  externalId     String
+  externalKey    String
+  externalUrl    String
+  externalStatus String?
+  lastSyncedAt   DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+
+  @@unique([feedbackItemId, provider, externalId])
+  @@index([feedbackItemId])
 }
 
 model FeedbackNote {
@@ -115,6 +224,51 @@ model RateLimitBucket {
   count       Int      @default(0)
   windowStart DateTime
   updatedAt   DateTime @updatedAt
+}
+
+model Label {
+  id            String          @id @default(cuid())
+  projectId     String?
+  project       Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name          String
+  color         String          @default("slate")
+  createdAt     DateTime        @default(now())
+  feedbackItems FeedbackLabel[]
+
+  @@index([projectId])
+}
+
+model FeedbackLabel {
+  feedbackItemId String
+  labelId        String
+  feedbackItem   FeedbackItem @relation(fields: [feedbackItemId], references: [id], onDelete: Cascade)
+  label          Label        @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([feedbackItemId, labelId])
+  @@index([labelId])
+}
+
+model SavedView {
+  id        String   @id @default(cuid())
+  name      String
+  projectId String?
+  filters   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkspaceSettings {
+  id                String           @id @default("default")
+  layoutWidth       LayoutWidth      @default(full)
+  defaultTicketView TicketViewMode   @default(list_full)
+  newProjectMode    PresentationMode @default(page)
+  newFeedbackMode   PresentationMode @default(modal)
+  ticketReviewMode  PresentationMode @default(drawer)
+  sidebarCollapsed  Boolean          @default(false)
+  themeMode         ThemeMode        @default(system)
+  themeAccent       ThemeAccent      @default(slate)
+  completedTours    String[]         @default([])
+  updatedAt         DateTime         @updatedAt
 }
 
 model AdminUser {

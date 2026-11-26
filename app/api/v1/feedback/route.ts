@@ -4,6 +4,7 @@ import { hashApiKey } from "@/lib/api-keys";
 import { priorityOptions, typeOptions } from "@/lib/feedback-display";
 import { sendFeedbackNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { allocateNextTicketKey } from "@/lib/ticket-keys";
 
 export async function POST(request: NextRequest) {
   const rawKey = extractApiKey(request);
@@ -102,9 +103,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const keyAlloc = await allocateNextTicketKey(apiKey.projectId);
+
   const feedback = await prisma.feedbackItem.create({
     data: {
       projectId: apiKey.projectId,
+      ...(keyAlloc.ticketKey
+        ? { sequenceNumber: keyAlloc.sequenceNumber, ticketKey: keyAlloc.ticketKey }
+        : {}),
       title,
       description,
       type: type as FeedbackType,

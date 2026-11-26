@@ -2,10 +2,13 @@ const DEFAULT_API_ORIGIN = "https://your-bug-tracker-domain.com";
 
 const state = {
   apiOrigin: DEFAULT_API_ORIGIN,
+  fullPageTarget: "public",
+  tabId: null,
   tabUrl: "",
   domain: "",
   projectSlug: "",
   screenshotDataUrl: "",
+  diagnosticsSummary: "",
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -17,6 +20,18 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("remove-screenshot-button")
     .addEventListener("click", clearScreenshot);
+  document.getElementById("open-full-page-button").addEventListener("click", () => {
+    if (!state.projectSlug) return;
+    const basePath =
+      state.fullPageTarget === "admin"
+        ? `/projects/by-slug/${encodeURIComponent(state.projectSlug)}/feedback/new`
+        : `/submit/${encodeURIComponent(state.projectSlug)}`;
+    const url = new URL(`${state.apiOrigin}${basePath}`);
+    if (state.tabUrl) url.searchParams.set("pageUrl", state.tabUrl);
+    if (state.diagnosticsSummary) url.searchParams.set("browserInfo", state.diagnosticsSummary);
+    url.searchParams.set("source", "extension");
+    chrome.tabs.create({ url: url.toString() });
+  });
   document.getElementById("options-button").addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
   });
@@ -27,11 +42,16 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initialize() {
-  const settings = await chrome.storage.local.get({ apiOrigin: DEFAULT_API_ORIGIN });
+  const settings = await chrome.storage.local.get({
+    apiOrigin: DEFAULT_API_ORIGIN,
+    fullPageTarget: "public",
+  });
   state.apiOrigin = normalizeOrigin(settings.apiOrigin);
+  state.fullPageTarget = settings.fullPageTarget || "public";
 
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const activeTab = tabs[0];
+  state.tabId = activeTab?.id ?? null;
   state.tabUrl = activeTab?.url || "";
 
   if (!state.tabUrl) {
@@ -43,6 +63,8 @@ async function initialize() {
   } catch {
     throw new Error("This tab does not have a usable website address.");
   }
+
+  state.diagnosticsSummary = await collectTabDiagnostics(state.tabId);
 
   const result = await fetchJson(
     `${state.apiOrigin}/api/lookup?domain=${encodeURIComponent(state.domain)}`,
@@ -59,6 +81,40 @@ async function initialize() {
 
   show("no-match-state");
   await loadFallbackProjects();
+}
+
+async function collectTabDiagnostics(tabId) {
+  const fallback = navigator.userAgent;
+  if (!tabId || !chrome.scripting?.executeScript) return fallback;
+
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        const failedResources = (performance.getEntriesByType("resource") || [])
+          .filter((entry) => typeof entry.responseStatus === "number" && entry.responseStatus >= 400)
+          .slice(-5)
+          .map((entry) => `${entry.responseStatus} ${entry.name.slice(0, 60)}`);
+        return {
+          viewport: `${vw}x${vh} @${dpr}x`,
+          failedResources,
+        };
+      },
+    });
+
+    const diag = results?.[0]?.result;
+    if (!diag) return fallback;
+    const parts = [fallback, `Viewport: ${diag.viewport}`];
+    if (Array.isArray(diag.failedResources) && diag.failedResources.length > 0) {
+      parts.push(`HTTP errors: ${diag.failedResources.join("; ")}`);
+    }
+    return parts.join(" | ").slice(0, 490);
+  } catch {
+    return fallback;
+  }
 }
 
 async function loadFallbackProjects() {
@@ -111,7 +167,7 @@ async function submitFeedback(event) {
     reporterEmail: document.getElementById("reporter-email").value.trim(),
     website: document.getElementById("website").value.trim(),
     pageUrl: state.tabUrl,
-    browserInfo: navigator.userAgent,
+    browserInfo: state.diagnosticsSummary || navigator.userAgent,
     ...(state.screenshotDataUrl ? { screenshotDataUrl: state.screenshotDataUrl } : {}),
   };
 

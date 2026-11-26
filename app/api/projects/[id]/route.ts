@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { requireAdminApiSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseProjectPayload } from "@/lib/project-validation";
@@ -43,10 +44,34 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
+  const updateData: Prisma.ProjectUpdateInput = {
+    name: parsed.data.name,
+    domain: parsed.data.domain,
+    repoUrl: parsed.data.repoUrl,
+    description: parsed.data.description,
+    ...(parsed.data.webhookUrl !== undefined ? { webhookUrl: parsed.data.webhookUrl } : {}),
+    ...(parsed.data.keyPrefix !== undefined ? { keyPrefix: parsed.data.keyPrefix } : {}),
+    ...(parsed.data.gitPlatform !== undefined ? { gitPlatform: parsed.data.gitPlatform } : {}),
+    ...(parsed.data.gitDefaultBranch !== undefined
+      ? { gitDefaultBranch: parsed.data.gitDefaultBranch }
+      : {}),
+    ...(parsed.data.trackerPlatform !== undefined
+      ? { trackerPlatform: parsed.data.trackerPlatform }
+      : {}),
+    ...(parsed.data.trackerConfig !== undefined
+      ? {
+          trackerConfig:
+            parsed.data.trackerConfig === null
+              ? Prisma.JsonNull
+              : (parsed.data.trackerConfig as Prisma.InputJsonValue),
+        }
+      : {}),
+  };
+
   try {
     const project = await prisma.project.update({
       where: { id },
-      data: parsed.data,
+      data: updateData,
     });
 
     return NextResponse.json(project);
@@ -56,7 +81,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     if (isPrismaUniqueError(error)) {
-      return NextResponse.json({ error: "That domain is already linked to a project" }, { status: 409 });
+      return NextResponse.json(
+        { error: "That domain or project key prefix is already linked to another project" },
+        { status: 409 },
+      );
     }
 
     throw error;

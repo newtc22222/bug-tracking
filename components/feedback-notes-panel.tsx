@@ -2,6 +2,8 @@
 
 import type { FeedbackStatus } from "@prisma/client";
 import { FormEvent, useEffect, useState } from "react";
+import MarkdownEditor from "@/components/markdown-editor";
+import MarkdownView from "@/components/markdown-view";
 import { ClockIcon } from "@/components/ui-icons";
 import { statusBadgeClass, statusLabels } from "@/lib/feedback-display";
 
@@ -36,6 +38,7 @@ export default function FeedbackNotesPanel({
   const [notes, setNotes] = useState<FeedbackNote[]>([]);
   const [statusEvents, setStatusEvents] = useState<FeedbackStatusEvent[]>([]);
   const [body, setBody] = useState("");
+  const [editorKey, setEditorKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -108,6 +111,7 @@ export default function FeedbackNotesPanel({
 
       setNotes((prev) => [created, ...prev]);
       setBody("");
+      setEditorKey((k) => k + 1);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to add note.");
     } finally {
@@ -131,12 +135,12 @@ export default function FeedbackNotesPanel({
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
-    <section className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-slate-950">Activity &amp; Internal Notes</h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Private admin triage notes and automatic status transitions.
+            Markdown-formatted admin notes and automatic status transitions.
           </p>
         </div>
         <span className="font-mono text-xs text-slate-400 tabular-nums">
@@ -146,16 +150,14 @@ export default function FeedbackNotesPanel({
       </div>
 
       <form onSubmit={handleAddNote} className="mt-4 space-y-2.5">
-        <label htmlFor="internal-note-body" className="sr-only">
-          Internal triage note
-        </label>
-        <textarea
+        <MarkdownEditor
+          key={editorKey}
           id="internal-note-body"
           value={body}
-          onChange={(event) => setBody(event.target.value)}
-          placeholder="Add an internal triage note…"
-          maxLength={5000}
-          className="min-h-24 w-full resize-y rounded-lg border border-slate-300 bg-slate-50/40 px-3 py-2.5 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-950 focus:bg-white focus:ring-2 focus:ring-slate-950/10"
+          onChange={setBody}
+          placeholder="Add an internal triage note (supports Markdown & checklists)…"
+          minHeightClass="min-h-24"
+          compact
         />
         {error && (
           <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -197,13 +199,16 @@ export default function FeedbackNotesPanel({
                         {new Date(entry.note.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
-                      {entry.note.body}
-                    </p>
+                    <div className="mt-2">
+                      <MarkdownView content={entry.note.body} />
+                    </div>
                   </div>
                 </li>
               ) : (
-                <li key={entry.id} className="relative flex flex-wrap items-center justify-between gap-2 py-0.5 text-xs">
+                <li
+                  key={entry.id}
+                  className="relative flex flex-wrap items-center justify-between gap-2 py-0.5 text-xs"
+                >
                   <span
                     aria-hidden="true"
                     className="absolute top-1.5 -left-[24px] flex h-2 w-2 items-center justify-center rounded-full bg-slate-300 ring-2 ring-white"

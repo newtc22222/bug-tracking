@@ -37,6 +37,7 @@ export type FeedbackQueryFilters = {
   type?: FeedbackType;
   priority?: FeedbackPriority | "none";
   source?: FeedbackSource;
+  labelId?: string;
   sort: FeedbackSortOption;
 };
 
@@ -79,6 +80,7 @@ export function parseFeedbackQueryParams(
   const rawType = readParam(searchParams, "type")?.trim() || "";
   const rawPriority = readParam(searchParams, "priority")?.trim() || "";
   const rawSource = readParam(searchParams, "source")?.trim() || "";
+  const rawLabelId = readParam(searchParams, "labelId")?.trim() || "";
   const rawSort = readParam(searchParams, "sort")?.trim() || "";
   const rawPage = readParam(searchParams, "page")?.trim() || "";
   const rawPageSize = readParam(searchParams, "pageSize")?.trim() || "";
@@ -128,6 +130,7 @@ export function parseFeedbackQueryParams(
     ? (rawPriority as FeedbackPriority | "none")
     : undefined;
   const source = rawSource ? (rawSource as FeedbackSource) : undefined;
+  const labelId = rawLabelId || undefined;
 
   const where: Prisma.FeedbackItemWhereInput = {
     ...(projectId ? { projectId } : {}),
@@ -139,9 +142,11 @@ export function parseFeedbackQueryParams(
         ? { priority }
         : {}),
     ...(source ? { source } : {}),
+    ...(labelId ? { labels: { some: { labelId } } } : {}),
     ...(q
       ? {
           OR: [
+            { ticketKey: { contains: q, mode: "insensitive" } },
             { title: { contains: q, mode: "insensitive" } },
             { description: { contains: q, mode: "insensitive" } },
             { reporterName: { contains: q, mode: "insensitive" } },
@@ -160,6 +165,7 @@ export function parseFeedbackQueryParams(
       type,
       priority,
       source,
+      ...(labelId ? { labelId } : {}),
       sort,
     },
     where,
@@ -182,6 +188,7 @@ export function buildFeedbackQueryString(
   if (filters.type) params.set("type", filters.type);
   if (filters.priority) params.set("priority", filters.priority);
   if (filters.source) params.set("source", filters.source);
+  if (filters.labelId) params.set("labelId", filters.labelId);
   if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
   if (filters.page && filters.page > 1) params.set("page", String(filters.page));
 

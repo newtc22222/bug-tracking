@@ -1,6 +1,7 @@
 "use client";
 
 import type { FeedbackType } from "@prisma/client";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { CheckIcon, FeedbackTypeIcon } from "@/components/ui-icons";
 import { typeAccentClass } from "@/lib/feedback-display";
@@ -17,6 +18,8 @@ const feedbackTypeCards: {
 ];
 
 export default function SubmitForm({ slug }: { slug: string }) {
+  const searchParams = useSearchParams();
+  const initialPageUrl = searchParams.get("pageUrl") || "";
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<FeedbackType>("bug");
@@ -43,6 +46,7 @@ export default function SubmitForm({ slug }: { slug: string }) {
           reporterName,
           reporterEmail,
           website,
+          ...(initialPageUrl ? { pageUrl: initialPageUrl } : {}),
         }),
       });
 

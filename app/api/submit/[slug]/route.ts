@@ -3,6 +3,7 @@ import { FeedbackSource, FeedbackType } from "@prisma/client";
 import { sendFeedbackNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { allowRateLimitedAction } from "@/lib/rate-limit";
+import { allocateNextTicketKey } from "@/lib/ticket-keys";
 
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_SUBMISSIONS_PER_WINDOW = 5;
@@ -133,9 +134,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ sl
   const source: FeedbackSource =
     pageUrl || browserInfo || screenshotDataUrl ? "extension" : "public_form";
 
+  const keyAlloc = await allocateNextTicketKey(project.id);
+
   const feedbackItem = await prisma.feedbackItem.create({
     data: {
       projectId: project.id,
+      ...(keyAlloc.ticketKey
+        ? { sequenceNumber: keyAlloc.sequenceNumber, ticketKey: keyAlloc.ticketKey }
+        : {}),
       title,
       description: descriptionWithContext,
       type: type as FeedbackType,

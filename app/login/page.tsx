@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import { BrandMarkIcon, EyeIcon, EyeOffIcon } from "@/components/ui-icons";
+import { APP_RELEASE_NAME, APP_VERSION_LABEL } from "@/lib/version";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ export default function LoginPage() {
       email,
       password,
       redirect: false,
-      callbackUrl: "/projects",
+      callbackUrl: "/dashboard",
     });
 
     if (result?.error) {
@@ -30,7 +31,7 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.assign(result?.url || "/projects");
+    window.location.assign(result?.url || "/dashboard");
   }
 
   return (
@@ -117,6 +118,10 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
+
+        <p className="mt-4 text-center font-mono text-[11px] text-slate-400">
+          Bug Tracking {APP_VERSION_LABEL} · {APP_RELEASE_NAME}
+        </p>
       </div>
     </main>
   );

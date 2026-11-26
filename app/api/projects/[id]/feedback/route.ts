@@ -8,6 +8,7 @@ import {
 import { requireAdminApiSession } from "@/lib/auth";
 import { parseFeedbackQueryParams } from "@/lib/feedback-query";
 import { prisma } from "@/lib/prisma";
+import { allocateNextTicketKey } from "@/lib/ticket-keys";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -99,10 +100,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const description = optionalText(payload.description);
   const reporterName = optionalText(payload.reporterName);
   const reporterEmail = optionalText(payload.reporterEmail);
+  const pageUrl = optionalText(payload.pageUrl);
+  const browserInfo = optionalText(payload.browserInfo);
+
+  const keyAlloc = await allocateNextTicketKey(projectId);
 
   const feedbackItem = await prisma.feedbackItem.create({
     data: {
       projectId,
+      ...(keyAlloc.ticketKey
+        ? { sequenceNumber: keyAlloc.sequenceNumber, ticketKey: keyAlloc.ticketKey }
+        : {}),
       title,
       description,
       type: type as FeedbackType,
@@ -111,6 +119,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       source: source as FeedbackSource,
       reporterName,
       reporterEmail,
+      ...(pageUrl ? { pageUrl } : {}),
+      ...(browserInfo ? { browserInfo } : {}),
     },
   });
 

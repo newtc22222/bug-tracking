@@ -1,18 +1,61 @@
-import Link from "next/link";
-import AdminNavLinks from "@/components/admin-nav-links";
-import { BrandMarkIcon, LogOutIcon } from "@/components/ui-icons";
+import AdminSidebar from "@/components/admin-sidebar";
+import { WorkspaceProvider } from "@/components/workspace-provider";
 import { signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getWorkspaceSettings } from "@/lib/workspace-settings";
 
 export default async function AdminShell({ children }: { children: React.ReactNode }) {
-  let openCount = 0;
-  try {
-    openCount = await prisma.feedbackItem.count({
-      where: { status: "open" },
-    });
-  } catch {
-    openCount = 0;
-  }
+  const [settings, openCount, rawProjects, labels, rawViews] = await Promise.all([
+    getWorkspaceSettings(),
+    prisma.feedbackItem.count({ where: { status: "open" } }).catch(() => 0),
+    prisma.project
+      .findMany({
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          keyPrefix: true,
+          _count: {
+            select: {
+              feedbackItems: {
+                where: { status: "open" },
+              },
+            },
+          },
+        },
+      })
+      .catch(() => []),
+    prisma.label
+      .findMany({
+        orderBy: [{ projectId: "asc" }, { name: "asc" }],
+        select: { id: true, name: true, color: true, projectId: true },
+      })
+      .catch(() => []),
+    prisma.savedView
+      .findMany({
+        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true, projectId: true, filters: true },
+      })
+      .catch(() => []),
+  ]);
+
+  const projects = rawProjects.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    keyPrefix: p.keyPrefix,
+    openCount: p._count.feedbackItems,
+  }));
+
+  const savedViews = rawViews.map((v) => ({
+    id: v.id,
+    name: v.name,
+    projectId: v.projectId,
+    filters: (v.filters && typeof v.filters === "object" && !Array.isArray(v.filters)
+      ? v.filters
+      : {}) as Record<string, string | undefined>,
+  }));
 
   async function logout() {
     "use server";
@@ -20,34 +63,17 @@ export default async function AdminShell({ children }: { children: React.ReactNo
   }
 
   return (
-    <div className="min-h-full flex-1">
-      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/projects"
-              className="inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-slate-950 transition hover:text-slate-700"
-            >
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-950 text-white shadow-xs">
-                <BrandMarkIcon className="h-3.5 w-3.5" />
-              </span>
-              <span>Bug Tracking</span>
-            </Link>
-            <span aria-hidden="true" className="h-4 w-px bg-slate-200" />
-            <AdminNavLinks openCount={openCount} />
-          </div>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-950"
-            >
-              <LogOutIcon className="h-3.5 w-3.5" />
-              <span>Log out</span>
-            </button>
-          </form>
-        </div>
-      </header>
-      {children}
-    </div>
+    <WorkspaceProvider
+      initialSettings={settings}
+      projects={projects}
+      initialLabels={labels}
+      initialSavedViews={savedViews}
+      openCount={openCount}
+    >
+      <div className="flex min-h-screen w-full flex-col lg:flex-row">
+        <AdminSidebar logoutAction={logout} />
+        <div className="min-w-0 flex-1 bg-background">{children}</div>
+      </div>
+    </WorkspaceProvider>
   );
 }

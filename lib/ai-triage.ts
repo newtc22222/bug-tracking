@@ -255,7 +255,7 @@ async function analyzeWithOpenAi(input: AiAnalysisInput): Promise<AiAnalysisResu
         {
           role: "system",
           content:
-            "You triage internal product feedback. Return JSON with keys: cleanedTitle (string <=200 chars), structuredDescription (markdown string), suggestedType (one of: bug, improvement, feature, question), suggestedPriority (one of: low, medium, high), summary (1 concise sentence), reasoning (1 concise sentence).",
+            "You triage internal product feedback. Return JSON with keys: cleanedTitle (string <=200 chars), structuredDescription (markdown string), suggestedType (one of: bug, improvement, feature, question), suggestedPriority (one of: low, medium, high, urgent), summary (1 concise sentence), reasoning (1 concise sentence).",
         },
         {
           role: "user",
@@ -310,7 +310,7 @@ async function analyzeWithGemini(input: AiAnalysisInput): Promise<AiAnalysisResu
             role: "user",
             parts: [
               {
-                text: `You triage internal product feedback. Return JSON with keys: cleanedTitle (string <=200 chars), structuredDescription (string), suggestedType (one of: bug, improvement, feature, question), suggestedPriority (one of: low, medium, high), summary (1 sentence), reasoning (1 sentence).\n\nInput:\n${JSON.stringify({ title: input.title, description: body, currentType: input.currentType || null, currentPriority: input.currentPriority || null })}`,
+                text: `You triage internal product feedback. Return JSON with keys: cleanedTitle (string <=200 chars), structuredDescription (string), suggestedType (one of: bug, improvement, feature, question), suggestedPriority (one of: low, medium, high, urgent), summary (1 sentence), reasoning (1 sentence).\n\nInput:\n${JSON.stringify({ title: input.title, description: body, currentType: input.currentType || null, currentPriority: input.currentPriority || null })}`,
               },
             ],
           },
@@ -559,15 +559,28 @@ function inferFeedbackPriority(
 
   if (
     countKeywordMatches(text, [
-      "crash",
       "data loss",
       "security",
       "vulnerability",
       "outage",
-      "500",
-      "blocker",
+      "production down",
       "urgent",
       "critical",
+      "sev1",
+      "p0",
+    ]) > 0
+  ) {
+    return {
+      suggestedPriority: "urgent",
+      priorityReason: "Critical/outage/security keywords indicate urgent priority.",
+    };
+  }
+
+  if (
+    countKeywordMatches(text, [
+      "crash",
+      "500",
+      "blocker",
       "cannot login",
       "can't login",
       "payment",
@@ -576,7 +589,7 @@ function inferFeedbackPriority(
   ) {
     return {
       suggestedPriority: "high",
-      priorityReason: "Urgent/blocking keywords indicate high priority.",
+      priorityReason: "Blocking/severe failure keywords indicate high priority.",
     };
   }
 

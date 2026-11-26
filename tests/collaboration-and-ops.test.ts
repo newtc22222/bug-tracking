@@ -146,14 +146,14 @@ describe("internal admin notes and status history", () => {
     mockPrisma.feedbackItem.findUnique.mockResolvedValueOnce({ status: "open" });
     mockPrisma.feedbackItem.update.mockResolvedValueOnce({
       id: "fb-1",
-      status: "resolved",
+      status: "in_progress",
       project: { id: "p1", name: "App", slug: "app" },
     });
 
     const changed = await patchFeedback(
       new NextRequest("http://localhost:3000/api/feedback/fb-1", {
         method: "PATCH",
-        body: JSON.stringify({ status: "resolved" }),
+        body: JSON.stringify({ status: "in_progress" }),
       }),
       context,
     );
@@ -162,7 +162,7 @@ describe("internal admin notes and status history", () => {
       data: {
         feedbackItemId: "fb-1",
         fromStatus: "open",
-        toStatus: "resolved",
+        toStatus: "in_progress",
         actorEmail: "admin@bugtrack.com",
       },
     });

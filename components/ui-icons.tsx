@@ -532,3 +532,263 @@ export function ClockIcon({ className = "h-3.5 w-3.5" }: IconProps) {
     </svg>
   );
 }
+
+export function DashboardIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="2.25" y="2.25" width="4.75" height="5.5" rx="1" />
+      <rect x="9" y="2.25" width="4.75" height="3.5" rx="1" />
+      <rect x="9" y="7.75" width="4.75" height="6" rx="1" />
+      <rect x="2.25" y="9.75" width="4.75" height="4" rx="1" />
+    </svg>
+  );
+}
+
+export function SettingsIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <circle cx="8" cy="8" r="2.25" />
+      <path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.75 3.75l1.05 1.05M11.2 11.2l1.05 1.05M12.25 3.75l-1.05 1.05M4.8 11.2l-1.05 1.05" />
+    </svg>
+  );
+}
+
+export function BookOpenIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M2.25 3.5h3.5A2.25 2.25 0 0 1 8 5.75v7.5a1.75 1.75 0 0 0-1.75-1.75h-4v-8Z" />
+      <path d="M13.75 3.5h-3.5A2.25 2.25 0 0 0 8 5.75v7.5a1.75 1.75 0 0 1 1.75-1.75h4v-8Z" />
+    </svg>
+  );
+}
+
+export function PanelLeftIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="2.25" y="2.5" width="11.5" height="11" rx="1.5" />
+      <path d="M6 2.5v11" />
+    </svg>
+  );
+}
+
+export function KanbanIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="2" y="2.5" width="3.25" height="9" rx="0.75" />
+      <rect x="6.4" y="2.5" width="3.25" height="6" rx="0.75" />
+      <rect x="10.75" y="2.5" width="3.25" height="11" rx="0.75" />
+    </svg>
+  );
+}
+
+export function ListIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.5M2.5 8h.5M2.5 12h.5" />
+    </svg>
+  );
+}
+
+export function GridIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="2.25" y="2.25" width="4.75" height="4.75" rx="1" />
+      <rect x="9" y="2.25" width="4.75" height="4.75" rx="1" />
+      <rect x="2.25" y="9" width="4.75" height="4.75" rx="1" />
+      <rect x="9" y="9" width="4.75" height="4.75" rx="1" />
+    </svg>
+  );
+}
+
+export function LinkChainIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M6.75 9.25 9.25 6.75" />
+      <path d="M5.5 10.5 4.25 11.75a2.12 2.12 0 1 1-3-3L2.5 7.5" />
+      <path d="M10.5 5.5 11.75 4.25a2.12 2.12 0 1 1 3 3L13.5 8.5" />
+    </svg>
+  );
+}
+
+export function GitBranchIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <circle cx="4.5" cy="3.5" r="1.5" />
+      <circle cx="4.5" cy="12.5" r="1.5" />
+      <circle cx="11.5" cy="6" r="1.5" />
+      <path d="M4.5 5v6M11.5 7.5c0 2.5-7 1.5-7 3.5" />
+    </svg>
+  );
+}
+
+export function WorkflowIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="2" y="2.5" width="4" height="3.5" rx="0.75" />
+      <rect x="10" y="2.5" width="4" height="3.5" rx="0.75" />
+      <rect x="6" y="10" width="4" height="3.5" rx="0.75" />
+      <path d="M6 4.25h4M12 6v1.5a1 1 0 0 1-1 1H8v1.5" />
+    </svg>
+  );
+}
+
+export function RefreshIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M13 8a5 5 0 1 1-1.4-3.45M13 3v2.5h-2.5" />
+    </svg>
+  );
+}
+
+export function MenuIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M2.5 4.25h11M2.5 8h11M2.5 11.75h11" />
+    </svg>
+  );
+}
+
+export function BotIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="2.5" y="4.5" width="11" height="8.5" rx="2" />
+      <path d="M8 2.25v2.25M5.75 8.5h.01M10.25 8.5h.01M6 10.75h4" />
+    </svg>
+  );
+}
+
+export function HelpCircleIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <circle cx="8" cy="8" r="5.75" />
+      <path d="M6.4 6.25a1.65 1.65 0 0 1 3.15.65c0 1-1.55 1.25-1.55 2.15" />
+      <circle cx="8" cy="11.4" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}

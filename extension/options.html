@@ -8,14 +8,22 @@
   </head>
   <body>
     <main class="settings-card">
-      <p class="eyebrow">Bug Tracking</p>
+      <p class="eyebrow">Bug Tracking · v0.2.0</p>
       <h1>Extension settings</h1>
-      <p class="intro">Choose the self-hosted Bug Tracking server that should receive feedback.</p>
+      <p class="intro">Configure your self-hosted Bug Tracking origin and full-page capture target.</p>
 
       <form id="settings-form">
         <label for="api-origin">API origin</label>
         <input id="api-origin" type="url" placeholder="http://localhost:3000" required />
         <p class="hint">Use the origin only, for example <code>https://feedback.example.com</code>.</p>
+
+        <label for="full-page-target" style="margin-top: 14px; display: block;">Full-page form target</label>
+        <select id="full-page-target" style="width: 100%; height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 10px;">
+          <option value="public">Public Form (/submit/[slug])</option>
+          <option value="admin">Admin Full Editor (/projects/by-slug/[slug]/feedback/new)</option>
+        </select>
+        <p class="hint">Choose where the "Open full page form ↗" button opens.</p>
+
         <p id="status" class="status" role="status"></p>
         <button type="submit">Save settings</button>
       </form>

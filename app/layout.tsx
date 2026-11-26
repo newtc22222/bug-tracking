@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
+import { THEME_ACCENT_COOKIE, THEME_MODE_COOKIE } from "@/lib/workspace-settings";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,14 +16,26 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Bug Tracking",
-  description: "Private project and feedback tracking workspace",
+  description: "Private multi-project workbench and quick bug tracker",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export const viewport: Viewport = {
+  colorScheme: "light dark",
+};
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const cookieStore = await cookies();
+  const themeMode = cookieStore.get(THEME_MODE_COOKIE)?.value || "system";
+  const themeAccent = cookieStore.get(THEME_ACCENT_COOKIE)?.value || "slate";
+  const isExplicitDark = themeMode === "dark";
+
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-theme={themeMode}
+      data-accent={themeAccent}
+      className={`${geistSans.variable} ${geistMono.variable} ${isExplicitDark ? "dark" : ""} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground selection:bg-slate-900 selection:text-white">
         {children}

@@ -3,25 +3,36 @@ import path from "node:path";
 import { prisma } from "../lib/prisma";
 
 async function main() {
-  const [projects, feedbackItems, feedbackNotes, feedbackStatusEvents, projectApiKeys] =
-    await Promise.all([
-      prisma.project.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.feedbackItem.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.feedbackNote.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.feedbackStatusEvent.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.projectApiKey.findMany({
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          projectId: true,
-          name: true,
-          keyPrefix: true,
-          lastUsedAt: true,
-          revokedAt: true,
-          createdAt: true,
-        },
-      }),
-    ]);
+  const [
+    projects,
+    feedbackItems,
+    feedbackNotes,
+    feedbackStatusEvents,
+    feedbackLinks,
+    externalIssueLinks,
+    workspaceSettings,
+    projectApiKeys,
+  ] = await Promise.all([
+    prisma.project.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.feedbackItem.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.feedbackNote.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.feedbackStatusEvent.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.feedbackLink.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.externalIssueLink.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.workspaceSettings.findMany(),
+    prisma.projectApiKey.findMany({
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        projectId: true,
+        name: true,
+        keyPrefix: true,
+        lastUsedAt: true,
+        revokedAt: true,
+        createdAt: true,
+      },
+    }),
+  ]);
 
   const backupDir = path.resolve(process.cwd(), "backups");
   await mkdir(backupDir, { recursive: true });
@@ -36,12 +47,17 @@ async function main() {
       feedbackItems: feedbackItems.length,
       feedbackNotes: feedbackNotes.length,
       feedbackStatusEvents: feedbackStatusEvents.length,
+      feedbackLinks: feedbackLinks.length,
+      externalIssueLinks: externalIssueLinks.length,
       projectApiKeys: projectApiKeys.length,
     },
     projects,
     feedbackItems,
     feedbackNotes,
     feedbackStatusEvents,
+    feedbackLinks,
+    externalIssueLinks,
+    workspaceSettings,
     projectApiKeys,
   };
 

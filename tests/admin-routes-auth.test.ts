@@ -125,11 +125,13 @@ describe("admin API routes authentication and CRUD", () => {
 
     mockPrisma.project.findUnique
       .mockResolvedValueOnce({ id: "existing" })
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
     mockPrisma.project.create.mockResolvedValue({
       id: "proj-2",
       name: "My App",
       slug: "my-app-1",
+      keyPrefix: "MA",
       domain: "app.example.com",
       repoUrl: null,
       description: null,
@@ -150,6 +152,7 @@ describe("admin API routes authentication and CRUD", () => {
       data: {
         name: "My App",
         slug: "my-app-1",
+        keyPrefix: "MA",
         domain: "app.example.com",
         repoUrl: null,
         description: null,
